@@ -63,6 +63,7 @@ const TextArea = ({ label, name, error, onFocus, onBlur, ...props }) => (
 
 
 const LesenForm = () => {
+  const API_URL ="http://localhost:5000/api/lesen"
   const { id } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialFormState);
@@ -89,7 +90,7 @@ const LesenForm = () => {
     if (isEditMode) {
       setLoading(true);
       axios
-        .get(`http://localhost:5000/api/lesen/${id}`)
+        .get(`${API_URL}/${id}`)
         .then((response) => {
           setFormData(mergeData(response.data));
           setLoading(false);
@@ -209,10 +210,10 @@ const LesenForm = () => {
     setLoading(true);
     try {
       if (isEditMode) {
-        await axios.put(`http://localhost:5000/api/lesen/${id}`, formData);
+        await axios.put(`${API_URL}/${id}`, formData);
         alert("LESEN item updated successfully!");
       } else {
-        await axios.post("http://localhost:5000/api/lesen", formData);
+        await axios.post(API_URL, formData);
         alert("LESEN item created successfully!");
       }
       navigate("/lesen");
