@@ -3,7 +3,8 @@ import axios from "axios";
 import { Link } from "react-router-dom"; // Import Link
 import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api/lesen";
+// const API_URL = "http://localhost:5000/api/lesen";
+const API_URL = "https://sahlab2.onrender.com/api/lesen";
 
 const Lesen = () => {
   const [data, setData] = useState([]);
