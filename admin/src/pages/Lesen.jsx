@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom"; // Import Link
-import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+} from "lucide-react";
 
 // const API_URL = "http://localhost:5000/api/lesen";
 const API_URL = "https://sahlab2.onrender.com/api/lesen";
@@ -29,6 +36,19 @@ const Lesen = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleDuplicate = async (item) => {
+    // Remove _id and optionally update id or other fields
+    const { _id, ...copy } = item;
+    // Optionally, increment the id or set to a new value
+    copy.id = data.length > 0 ? Math.max(...data.map((i) => i.id)) + 1 : 1;
+    try {
+      await axios.post(API_URL, copy);
+      fetchData(); // Refresh the list
+    } catch (err) {
+      alert("Failed to duplicate item.");
+    }
+  };
 
   const paginatedData = data.slice(
     (currentPage - 1) * itemsPerPage,
@@ -88,13 +108,19 @@ const Lesen = () => {
                 </td>
                 <td className="px-6 py-4">{item.themaTr}</td>
                 <td className="px-6 py-4 text-right space-x-2">
-                  {/* MODIFICATION HNA: Sta3melna Link */}
                   <Link
                     to={`/lesen/edit/${item._id}`}
                     className="p-2 text-blue-500 hover:text-blue-700 inline-block"
                   >
                     <Edit size={18} />
                   </Link>
+                  <button
+                    onClick={() => handleDuplicate(item)}
+                    className="p-2 text-green-500 hover:text-green-700"
+                    title="Duplicate"
+                  >
+                    <Copy size={18} />
+                  </button>
                   <button
                     onClick={() => confirmDelete(item._id)}
                     className="p-2 text-red-500 hover:text-red-700"
