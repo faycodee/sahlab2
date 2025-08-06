@@ -12,9 +12,10 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col">
+    <aside className="w-54 bg-gray-900 text-white flex flex-col">
       <div className="h-20 flex items-center justify-center border-b border-gray-800">
-        <h1 className="text-2xl font-bold text-indigo-400">SAHLAB2</h1>
+      <img  className=" ml-5" src="./logo.png" alt="" width={35} srcset="" />
+        <h1 className="text-3xl ml-4 font-bold text-indigo-400"> SAHLAB2</h1>
       </div>
       <nav className="flex-1 px-4 py-6">
         <ul>
@@ -48,7 +49,7 @@ const DashboardLayout = () => {
       <Sidebar />
       <main className=" flex-1 flex flex-col overflow-hidden w-full">
         <header className="h-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-8">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Admin Panel</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white"></h2>
             {/* You can add user profile, notifications here */}
         </header>
         <div className="flex-1 overflow-y-auto p-8 w-full">
