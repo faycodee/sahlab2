@@ -110,6 +110,12 @@ const LesenForm = () => {
           alert("Could not load existing data. Please try again.");
           setLoading(false);
         });
+    } else {
+      // Restore draft if exists
+      const draft = localStorage.getItem("lesenFormDraft");
+      if (draft) {
+        setFormData(JSON.parse(draft));
+      }
     }
   }, [id, isEditMode]);
 
@@ -238,6 +244,7 @@ const LesenForm = () => {
         await axios.post(API_URL, formData);
         alert("LESEN item created successfully!");
       }
+      localStorage.removeItem("lesenFormDraft");
       navigate("/lesen");
     } catch (err) {
       console.error("Failed to save LESEN item", err);
@@ -283,6 +290,20 @@ const LesenForm = () => {
             >
               <ArrowLeft size={20} className="mr-2" />
               Back
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem(
+                  "lesenFormDraft",
+                  JSON.stringify(formData)
+                );
+                alert("Draft saved locally!");
+              }}
+              className="flex items-center bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-transform duration-200 ease-in-out hover:scale-105 mr-4"
+            >
+              <Save size={20} className="mr-2" />
+              Save in Local
             </button>
             <button
               type="submit"
