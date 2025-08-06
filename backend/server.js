@@ -22,6 +22,9 @@ connection.once("open", () => {
 const LesenRoutes = require("./routes/LesenRoutes");
 app.use("/api/lesen", LesenRoutes); // Base route for Lesen API
 
+const hoerenRoutes = require("./routes/hörenRoutes");
+app.use("/api/horen", hoerenRoutes);
+
 app.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
 });
