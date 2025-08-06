@@ -37,18 +37,6 @@ const Lesen = () => {
     fetchData();
   }, []);
 
-  const handleDuplicate = async (item) => {
-    // Remove _id and optionally update id or other fields
-    const { _id, ...copy } = item;
-    // Optionally, increment the id or set to a new value
-    copy.id = data.length > 0 ? Math.max(...data.map((i) => i.id)) + 1 : 1;
-    try {
-      await axios.post(API_URL, copy);
-      fetchData(); // Refresh the list
-    } catch (err) {
-      alert("Failed to duplicate item.");
-    }
-  };
 
   const paginatedData = data.slice(
     (currentPage - 1) * itemsPerPage,
@@ -114,13 +102,7 @@ const Lesen = () => {
                   >
                     <Edit size={18} />
                   </Link>
-                  <button
-                    onClick={() => handleDuplicate(item)}
-                    className="p-2 text-green-500 hover:text-green-700"
-                    title="Duplicate"
-                  >
-                    <Copy size={18} />
-                  </button>
+                
                   <button
                     onClick={() => confirmDelete(item._id)}
                     className="p-2 text-red-500 hover:text-red-700"
