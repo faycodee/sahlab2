@@ -19,11 +19,24 @@ connection.once("open", () => {
 });
 
 // Routes
+console.log("Loading LesenRoutes...");
 const LesenRoutes = require("./routes/LesenRoutes");
-app.use("/api/lesen", LesenRoutes); // Base route for Lesen API
+console.log("LesenRoutes type:", typeof LesenRoutes);
+console.log("LesenRoutes value:", LesenRoutes);
 
-const hoerenRoutes = require("./routes/hörenRoutes");
-app.use("/api/horen", hoerenRoutes);
+console.log("Loading horenRoutes...");
+const horenRoutes = require("./routes/horenRoutes");
+console.log("horenRoutes type:", typeof horenRoutes);
+console.log("horenRoutes value:", horenRoutes);
+
+console.log("Loading SchreibenRoutes...");
+const SchreibenRoutes = require("./routes/SchreibenRoutes");
+console.log("SchreibenRoutes type:", typeof SchreibenRoutes);
+console.log("SchreibenRoutes value:", SchreibenRoutes);
+
+app.use("/api/lesen", LesenRoutes); // Line 23 - this might be the issue
+app.use("/api/horen", horenRoutes);
+app.use("/api/schreiben", SchreibenRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on port: ${port}`);

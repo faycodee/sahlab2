@@ -8,3 +8,5 @@ router.get('/', LesenController.getAllLesen); // Read all
 router.get('/:id', LesenController.getLesenById); // Read one by ID
 router.put('/:id', LesenController.updateLesen); // Update by ID
 router.delete('/:id', LesenController.deleteLesen); // Delete by ID
+
+module.exports = router;

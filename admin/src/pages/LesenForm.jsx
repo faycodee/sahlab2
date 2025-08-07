@@ -9,13 +9,13 @@ const initialFormState = {
   thema: "",
   themaTr: "",
   teile: {
-    teil1: { titel: "", photo: "", Überschriften: [], Texte: [] },
-    teil2: { titel: "", photo: "", text: "", fragen: [], fazit: [] },
-    teil3: { titel: "", situationen: [], anzeigen: [] },
+    teil1: [],
+    teil2: [],
+    teil3: [],
   },
   sprachb: {
-    teil1: { text: "", fragen: [] },
-    teil2: { text: "", options: [] },
+    teil1: [],
+    teil2: [],
   },
 };
 
@@ -68,8 +68,8 @@ const TextArea = ({ label, name, error, onFocus, onBlur, ...props }) => (
 );
 
 const LesenForm = () => {
-  // const API_URL ="http://localhost:5000/api/lesen"
-  const API_URL = "https://sahlab2.onrender.com/api/lesen";
+  const API_URL ="http://localhost:5000/api/lesen"
+  // const API_URL = "https://sahlab2.onrender.com/api/lesen";
   const { id } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialFormState);
@@ -88,7 +88,19 @@ const LesenForm = () => {
         fetchedData[key] !== null &&
         !Array.isArray(fetchedData[key])
       ) {
+        // Handle nested objects like teile and sprachb
+        if (key === 'teile' || key === 'sprachb') {
+          merged[key] = { ...initialFormState[key] };
+          for (const subKey in fetchedData[key]) {
+            if (Array.isArray(fetchedData[key][subKey])) {
+              merged[key][subKey] = fetchedData[key][subKey];
+            } else {
+              merged[key][subKey] = [];
+            }
+          }
+        } else {
         merged[key] = { ...initialFormState[key], ...fetchedData[key] };
+        }
       } else {
         merged[key] = fetchedData[key];
       }
@@ -220,9 +232,23 @@ const LesenForm = () => {
     const newErrors = {};
     if (!formData.thema) newErrors.thema = "Thema is required.";
     if (!formData.themaTr) newErrors.themaTr = "Thema TR is required.";
-    // Add more validation rules for other tabs if needed
-    if (!formData.teile.teil1.titel)
-      newErrors["teile.teil1.titel"] = "Titel for Teil 1 is required.";
+    
+    // Validate that arrays exist and are properly structured
+    if (!Array.isArray(formData.teile.teil1)) {
+      newErrors["teile.teil1"] = "Teil 1 must be an array.";
+    }
+    if (!Array.isArray(formData.teile.teil2)) {
+      newErrors["teile.teil2"] = "Teil 2 must be an array.";
+    }
+    if (!Array.isArray(formData.teile.teil3)) {
+      newErrors["teile.teil3"] = "Teil 3 must be an array.";
+    }
+    if (!Array.isArray(formData.sprachb.teil1)) {
+      newErrors["sprachb.teil1"] = "Sprachb Teil 1 must be an array.";
+    }
+    if (!Array.isArray(formData.sprachb.teil2)) {
+      newErrors["sprachb.teil2"] = "Sprachb Teil 2 must be an array.";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -366,39 +392,66 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Teil 1 Details
               </h3>
+              
+              {/* Teil 1 Items */}
+              {formData.teile.teil1.map((teil1Item, teil1Index) => (
+                <div key={teil1Index} className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-semibold">Teil 1 Item #{teil1Index + 1}</h4>
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem(["teile", "teil1"], teil1Index)}
+                      className="text-red-500 hover:text-red-400"
+                    >
+                      <XCircle size={22} />
+                    </button>
+                  </div>
+                  
               <Input
                 label="Titel"
-                name="teile.teil1.titel"
-                value={formData.teile.teil1.titel}
-                onChange={handleChange}
+                    value={teil1Item.titel || ""}
+                    onChange={(e) =>
+                      handleArrayChange(
+                        ["teile", "teil1"],
+                        teil1Index,
+                        "titel",
+                        e.target.value
+                      )
+                    }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
-                error={errors["teile.teil1.titel"]}
               />
               <Input
                 label="Photo URL"
-                name="teile.teil1.photo"
-                value={formData.teile.teil1.photo}
-                onChange={handleChange}
+                    value={teil1Item.photo || ""}
+                    onChange={(e) =>
+                      handleArrayChange(
+                        ["teile", "teil1"],
+                        teil1Index,
+                        "photo",
+                        e.target.value
+                      )
+                    }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
               />
 
               {/* Überschriften */}
               <div className="mt-6">
-                <h4 className="font-semibold mb-2">Überschriften</h4>
-                {formData.teile.teil1.Überschriften.map((item, index) => (
+                    <h5 className="font-semibold mb-2">Überschriften</h5>
+                    {(teil1Item.Überschriften || []).map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-4 p-3 my-2 bg-gray-800 rounded-md"
+                        className="flex items-center gap-4 p-3 my-2 bg-gray-700 rounded-md"
                   >
                     <Input
                       label="ID"
-                      name={`uberschrift-id-${index}`}
-                      value={item.id}
+                          value={item.id || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil1", "Überschriften"],
+                            handleNestedArrayChange(
+                              ["teile", "teil1"],
+                              teil1Index,
+                              "Überschriften",
                           index,
                           "id",
                           e.target.value
@@ -409,11 +462,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Text"
-                      name={`uberschrift-text-${index}`}
-                      value={item.text}
+                          value={item.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil1", "Überschriften"],
+                            handleNestedArrayChange(
+                              ["teile", "teil1"],
+                              teil1Index,
+                              "Überschriften",
                           index,
                           "text",
                           e.target.value
@@ -426,23 +480,26 @@ const LesenForm = () => {
                       type="button"
                       onClick={() =>
                         removeArrayItem(
-                          ["teile", "teil1", "Überschriften"],
+                              ["teile", "teil1", teil1Index, "Überschriften"],
                           index
                         )
                       }
                       className="mt-6 text-red-500 hover:text-red-400"
                     >
-                      <XCircle size={22} />
+                          <XCircle size={20} />
                     </button>
                   </div>
                 ))}
                 <button
                   type="button"
                   onClick={() =>
-                    addArrayItem(["teile", "teil1", "Überschriften"], {
-                      id: getNextAlphaId(formData.teile.teil1.Überschriften),
+                        addArrayItem(
+                          ["teile", "teil1", teil1Index, "Überschriften"],
+                          {
+                            id: getNextAlphaId(teil1Item.Überschriften || []),
                       text: "",
-                    })
+                          }
+                        )
                   }
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
@@ -452,30 +509,35 @@ const LesenForm = () => {
 
               {/* Texte */}
               <div className="mt-6">
-                <h4 className="font-semibold mb-2">Texte</h4>
-                {formData.teile.teil1.Texte.map((item, index) => (
+                    <h5 className="font-semibold mb-2">Texte</h5>
+                    {(teil1Item.Texte || []).map((item, index) => (
                   <div
                     key={index}
-                    className="p-4 my-2 bg-gray-800 rounded-md border border-gray-700"
+                        className="p-4 my-2 bg-gray-700 rounded-md border border-gray-600"
                   >
                     <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() =>
-                          removeArrayItem(["teile", "teil1", "Texte"], index)
+                              removeArrayItem(
+                                ["teile", "teil1", teil1Index, "Texte"],
+                                index
+                              )
                         }
                         className="text-red-500 hover:text-red-400"
                       >
-                        <XCircle size={22} />
+                            <XCircle size={20} />
                       </button>
                     </div>
                     <Input
                       label="ID"
                       type="number"
-                      value={item.id}
+                          value={item.id || 0}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil1", "Texte"],
+                            handleNestedArrayChange(
+                              ["teile", "teil1"],
+                              teil1Index,
+                              "Texte",
                           index,
                           "id",
                           parseInt(e.target.value) || 0
@@ -486,10 +548,12 @@ const LesenForm = () => {
                     />
                     <TextArea
                       label="Text"
-                      value={item.text}
+                          value={item.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil1", "Texte"],
+                            handleNestedArrayChange(
+                              ["teile", "teil1"],
+                              teil1Index,
+                              "Texte",
                           index,
                           "text",
                           e.target.value
@@ -501,10 +565,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Antwort"
-                      value={item.antwort}
+                          value={item.antwort || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil1", "Texte"],
+                            handleNestedArrayChange(
+                              ["teile", "teil1"],
+                              teil1Index,
+                              "Texte",
                           index,
                           "antwort",
                           e.target.value
@@ -515,10 +581,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Fazit"
-                      value={item.fazit}
+                          value={item.fazit || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil1", "Texte"],
+                            handleNestedArrayChange(
+                              ["teile", "teil1"],
+                              teil1Index,
+                              "Texte",
                           index,
                           "fazit",
                           e.target.value
@@ -532,18 +600,38 @@ const LesenForm = () => {
                 <button
                   type="button"
                   onClick={() =>
-                    addArrayItem(["teile", "teil1", "Texte"], {
-                      id: getNextNumericId(formData.teile.teil1.Texte),
+                        addArrayItem(
+                          ["teile", "teil1", teil1Index, "Texte"],
+                          {
+                            id: getNextNumericId(teil1Item.Texte || []),
                       text: "",
                       antwort: "",
                       fazit: "",
-                    })
+                          }
+                        )
                   }
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
                   <PlusCircle size={20} className="mr-2" /> Add Text
                 </button>
               </div>
+                </div>
+              ))}
+              
+              <button
+                type="button"
+                onClick={() =>
+                  addArrayItem(["teile", "teil1"], {
+                    titel: "",
+                    photo: "",
+                    Überschriften: [],
+                    Texte: [],
+                  })
+                }
+                className="flex items-center text-indigo-400 hover:text-indigo-300 mt-4"
+              >
+                <PlusCircle size={20} className="mr-2" /> Add Teil 1 Item
+              </button>
             </div>
           )}
 
@@ -552,27 +640,60 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Teil 2 Details
               </h3>
+              
+              {/* Teil 2 Items */}
+              {formData.teile.teil2.map((teil2Item, teil2Index) => (
+                <div key={teil2Index} className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-semibold">Teil 2 Item #{teil2Index + 1}</h4>
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem(["teile", "teil2"], teil2Index)}
+                      className="text-red-500 hover:text-red-400"
+                    >
+                      <XCircle size={22} />
+                    </button>
+                  </div>
+                  
               <Input
                 label="Titel"
-                name="teile.teil2.titel"
-                value={formData.teile.teil2.titel}
-                onChange={handleChange}
+                    value={teil2Item.titel || ""}
+                    onChange={(e) =>
+                      handleArrayChange(
+                        ["teile", "teil2"],
+                        teil2Index,
+                        "titel",
+                        e.target.value
+                      )
+                    }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
               />
               <Input
                 label="Photo URL"
-                name="teile.teil2.photo"
-                value={formData.teile.teil2.photo}
-                onChange={handleChange}
+                    value={teil2Item.photo || ""}
+                    onChange={(e) =>
+                      handleArrayChange(
+                        ["teile", "teil2"],
+                        teil2Index,
+                        "photo",
+                        e.target.value
+                      )
+                    }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
               />
               <TextArea
                 label="Text"
-                name="teile.teil2.text"
-                value={formData.teile.teil2.text}
-                onChange={handleChange}
+                    value={teil2Item.text || ""}
+                    onChange={(e) =>
+                      handleArrayChange(
+                        ["teile", "teil2"],
+                        teil2Index,
+                        "text",
+                        e.target.value
+                      )
+                    }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 rows="3"
@@ -580,30 +701,35 @@ const LesenForm = () => {
 
               {/* Fragen */}
               <div className="mt-6">
-                <h4 className="font-semibold mb-2">Fragen</h4>
-                {formData.teile.teil2.fragen.map((frage, idx) => (
+                    <h5 className="font-semibold mb-2">Fragen</h5>
+                    {(teil2Item.fragen || []).map((frage, idx) => (
                   <div
                     key={idx}
-                    className="p-4 my-2 bg-gray-800 rounded-md border border-gray-700"
+                        className="p-4 my-2 bg-gray-700 rounded-md border border-gray-600"
                   >
                     <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() =>
-                          removeArrayItem(["teile", "teil2", "fragen"], idx)
+                              removeArrayItem(
+                                ["teile", "teil2", teil2Index, "fragen"],
+                                idx
+                              )
                         }
                         className="text-red-500 hover:text-red-400"
                       >
-                        <XCircle size={22} />
+                            <XCircle size={20} />
                       </button>
                     </div>
                     <Input
                       label="ID"
                       type="number"
-                      value={frage.id}
+                          value={frage.id || 0}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil2", "fragen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil2"],
+                              teil2Index,
+                              "fragen",
                           idx,
                           "id",
                           parseInt(e.target.value) || 0
@@ -614,10 +740,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Text"
-                      value={frage.text}
+                          value={frage.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil2", "fragen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil2"],
+                              teil2Index,
+                              "fragen",
                           idx,
                           "text",
                           e.target.value
@@ -629,15 +757,17 @@ const LesenForm = () => {
 
                     {/* Options */}
                     <div className="ml-4 mt-4">
-                      <h5 className="font-semibold">Options</h5>
-                      {frage.options.map((opt, optIdx) => (
+                          <h6 className="font-semibold">Options</h6>
+                          {(frage.options || []).map((opt, optIdx) => (
                         <div key={optIdx} className="flex gap-2 items-center">
                           <Input
                             label="Option ID"
-                            value={opt.id}
+                                value={opt.id || ""}
                             onChange={(e) =>
                               handleNestedArrayChange(
-                                ["teile", "teil2", "fragen"],
+                                    ["teile", "teil2"],
+                                    teil2Index,
+                                    "fragen",
                                 idx,
                                 "options",
                                 optIdx,
@@ -650,10 +780,12 @@ const LesenForm = () => {
                           />
                           <Input
                             label="Option Text"
-                            value={opt.text}
+                                value={opt.text || ""}
                             onChange={(e) =>
                               handleNestedArrayChange(
-                                ["teile", "teil2", "fragen"],
+                                    ["teile", "teil2"],
+                                    teil2Index,
+                                    "fragen",
                                 idx,
                                 "options",
                                 optIdx,
@@ -668,7 +800,7 @@ const LesenForm = () => {
                             type="button"
                             onClick={() =>
                               removeArrayItem(
-                                ["teile", "teil2", "fragen", idx, "options"],
+                                    ["teile", "teil2", teil2Index, "fragen", idx, "options"],
                                 optIdx
                               )
                             }
@@ -682,8 +814,8 @@ const LesenForm = () => {
                         type="button"
                         onClick={() =>
                           addArrayItem(
-                            ["teile", "teil2", "fragen", idx, "options"],
-                            { id: getNextAlphaId(frage.options), text: "" }
+                                ["teile", "teil2", teil2Index, "fragen", idx, "options"],
+                                { id: getNextAlphaId(frage.options || []), text: "" }
                           )
                         }
                         className="text-indigo-400 mt-2 text-sm"
@@ -694,10 +826,12 @@ const LesenForm = () => {
 
                     <Input
                       label="Antwort"
-                      value={frage.antwort}
+                          value={frage.antwort || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil2", "fragen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil2"],
+                              teil2Index,
+                              "fragen",
                           idx,
                           "antwort",
                           e.target.value
@@ -708,10 +842,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Begründung"
-                      value={frage.begründung}
+                          value={frage.begründung || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil2", "fragen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil2"],
+                              teil2Index,
+                              "fragen",
                           idx,
                           "begründung",
                           e.target.value
@@ -725,13 +861,16 @@ const LesenForm = () => {
                 <button
                   type="button"
                   onClick={() =>
-                    addArrayItem(["teile", "teil2", "fragen"], {
-                      id: getNextNumericId(formData.teile.teil2.fragen),
+                        addArrayItem(
+                          ["teile", "teil2", teil2Index, "fragen"],
+                          {
+                            id: getNextNumericId(teil2Item.fragen || []),
                       text: "",
                       options: [],
                       antwort: "",
                       begründung: "",
-                    })
+                          }
+                        )
                   }
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
@@ -741,18 +880,18 @@ const LesenForm = () => {
 
               {/* Fazit Array Input */}
               <div className="mt-6">
-                <h4 className="font-semibold mb-2">Fazit</h4>
-                {formData.teile.teil2.fazit.map((item, idx) => (
+                    <h5 className="font-semibold mb-2">Fazit</h5>
+                    {(teil2Item.fazit || []).map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 p-3 my-2 bg-gray-800 rounded-md"
+                        className="flex items-center gap-2 p-3 my-2 bg-gray-700 rounded-md"
                   >
                     <Input
                       label={`Fazit #${idx + 1}`}
-                      value={item}
+                          value={item || ""}
                       onChange={(e) =>
                         handleArrayChange(
-                          ["teile", "teil2", "fazit"],
+                              ["teile", "teil2", teil2Index, "fazit"],
                           idx,
                           null,
                           e.target.value
@@ -764,22 +903,40 @@ const LesenForm = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        removeArrayItem(["teile", "teil2", "fazit"], idx)
+                            removeArrayItem(["teile", "teil2", teil2Index, "fazit"], idx)
                       }
                       className="mt-6 text-red-500 hover:text-red-400"
                     >
-                      <XCircle size={22} />
+                          <XCircle size={20} />
                     </button>
                   </div>
                 ))}
                 <button
                   type="button"
-                  onClick={() => addArrayItem(["teile", "teil2", "fazit"], "")}
+                      onClick={() => addArrayItem(["teile", "teil2", teil2Index, "fazit"], "")}
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
                   <PlusCircle size={20} className="mr-2" /> Add Fazit
                 </button>
               </div>
+                </div>
+              ))}
+              
+              <button
+                type="button"
+                onClick={() =>
+                  addArrayItem(["teile", "teil2"], {
+                    titel: "",
+                    photo: "",
+                    text: "",
+                    fragen: [],
+                    fazit: [],
+                  })
+                }
+                className="flex items-center text-indigo-400 hover:text-indigo-300 mt-4"
+              >
+                <PlusCircle size={20} className="mr-2" /> Add Teil 2 Item
+              </button>
             </div>
           )}
 
@@ -788,30 +945,53 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Teil 3 Details
               </h3>
+              
+              {/* Teil 3 Items */}
+              {formData.teile.teil3.map((teil3Item, teil3Index) => (
+                <div key={teil3Index} className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-semibold">Teil 3 Item #{teil3Index + 1}</h4>
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem(["teile", "teil3"], teil3Index)}
+                      className="text-red-500 hover:text-red-400"
+                    >
+                      <XCircle size={22} />
+                    </button>
+                  </div>
+                  
               <Input
                 label="Titel"
-                name="teile.teil3.titel"
-                value={formData.teile.teil3.titel}
-                onChange={handleChange}
+                    value={teil3Item.titel || ""}
+                    onChange={(e) =>
+                      handleArrayChange(
+                        ["teile", "teil3"],
+                        teil3Index,
+                        "titel",
+                        e.target.value
+                      )
+                    }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
               />
 
               {/* Situationen */}
               <div className="mt-6">
-                <h4 className="font-semibold mb-2">Situationen</h4>
-                {formData.teile.teil3.situationen.map((item, idx) => (
+                    <h5 className="font-semibold mb-2">Situationen</h5>
+                    {(teil3Item.situationen || []).map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 p-3 my-2 bg-gray-800 rounded-md"
+                        className="flex items-center gap-2 p-3 my-2 bg-gray-700 rounded-md"
                   >
                     <Input
                       label="ID"
                       type="number"
-                      value={item.id}
+                          value={item.id || 0}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil3", "situationen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil3"],
+                              teil3Index,
+                              "situationen",
                           idx,
                           "id",
                           parseInt(e.target.value) || 0
@@ -822,10 +1002,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Text"
-                      value={item.text}
+                          value={item.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil3", "situationen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil3"],
+                              teil3Index,
+                              "situationen",
                           idx,
                           "text",
                           e.target.value
@@ -837,23 +1019,27 @@ const LesenForm = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        removeArrayItem(["teile", "teil3", "situationen"], idx)
+                            removeArrayItem(
+                              ["teile", "teil3", teil3Index, "situationen"],
+                              idx
+                            )
                       }
                       className="mt-6 text-red-500 hover:text-red-400"
                     >
-                      <XCircle size={22} />
+                          <XCircle size={20} />
                     </button>
                   </div>
                 ))}
                 <button
                   type="button"
                   onClick={() =>
-                    addArrayItem(["teile", "teil3", "situationen"], {
-                      id: getNextZeroNumericId(
-                        formData.teile.teil3.situationen
-                      ),
+                        addArrayItem(
+                          ["teile", "teil3", teil3Index, "situationen"],
+                          {
+                            id: getNextZeroNumericId(teil3Item.situationen || []),
                       text: "",
-                    })
+                          }
+                        )
                   }
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
@@ -863,18 +1049,20 @@ const LesenForm = () => {
 
               {/* Anzeigen */}
               <div className="mt-6">
-                <h4 className="font-semibold mb-2">Anzeigen</h4>
-                {formData.teile.teil3.anzeigen.map((item, idx) => (
+                    <h5 className="font-semibold mb-2">Anzeigen</h5>
+                    {(teil3Item.anzeigen || []).map((item, idx) => (
                   <div
                     key={idx}
-                    className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 my-2 bg-gray-800 rounded-md"
+                        className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 my-2 bg-gray-700 rounded-md"
                   >
                     <Input
                       label="ID"
-                      value={item.id}
+                          value={item.id || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil3", "anzeigen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil3"],
+                              teil3Index,
+                              "anzeigen",
                           idx,
                           "id",
                           e.target.value
@@ -885,10 +1073,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Text"
-                      value={item.text}
+                          value={item.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil3", "anzeigen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil3"],
+                              teil3Index,
+                              "anzeigen",
                           idx,
                           "text",
                           e.target.value
@@ -900,10 +1090,12 @@ const LesenForm = () => {
                     <Input
                       label="Antwort"
                       type="number"
-                      value={item.antwort}
+                          value={item.antwort || 0}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil3", "anzeigen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil3"],
+                              teil3Index,
+                              "anzeigen",
                           idx,
                           "antwort",
                           parseInt(e.target.value) || 0
@@ -914,10 +1106,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Fazit"
-                      value={item.fazit}
+                          value={item.fazit || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["teile", "teil3", "anzeigen"],
+                            handleNestedArrayChange(
+                              ["teile", "teil3"],
+                              teil3Index,
+                              "anzeigen",
                           idx,
                           "fazit",
                           e.target.value
@@ -929,29 +1123,51 @@ const LesenForm = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        removeArrayItem(["teile", "teil3", "anzeigen"], idx)
+                            removeArrayItem(
+                              ["teile", "teil3", teil3Index, "anzeigen"],
+                              idx
+                            )
                       }
                       className="mt-6 text-red-500 hover:text-red-400"
                     >
-                      <XCircle size={22} />
+                          <XCircle size={20} />
                     </button>
                   </div>
                 ))}
                 <button
                   type="button"
                   onClick={() =>
-                    addArrayItem(["teile", "teil3", "anzeigen"], {
-                      id: getNextAlphaId(formData.teile.teil3.anzeigen),
+                        addArrayItem(
+                          ["teile", "teil3", teil3Index, "anzeigen"],
+                          {
+                            id: getNextAlphaId(teil3Item.anzeigen || []),
                       text: "",
                       antwort: 0,
                       fazit: "",
-                    })
+                          }
+                        )
                   }
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
                   <PlusCircle size={20} className="mr-2" /> Add Anzeige
                 </button>
               </div>
+                </div>
+              ))}
+              
+              <button
+                type="button"
+                onClick={() =>
+                  addArrayItem(["teile", "teil3"], {
+                    titel: "",
+                    situationen: [],
+                    anzeigen: [],
+                  })
+                }
+                className="flex items-center text-indigo-400 hover:text-indigo-300 mt-4"
+              >
+                <PlusCircle size={20} className="mr-2" /> Add Teil 3 Item
+              </button>
             </div>
           )}
 
@@ -960,41 +1176,67 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Sprachbausteine
               </h3>
-              {/* Sprachb Teil 1 */}
-              <div className="mb-6 p-4 bg-gray-800/50 rounded-lg">
-                <h4 className="font-semibold">Teil 1</h4>
+              
+              {/* Sprachb Teil 1 Items */}
+              <div className="mb-6">
+                <h4 className="font-semibold mb-4">Teil 1</h4>
+                {formData.sprachb.teil1.map((sprachb1Item, sprachb1Index) => (
+                  <div key={sprachb1Index} className="p-4 my-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex justify-between items-center mb-4">
+                      <h5 className="font-semibold">Teil 1 Item #{sprachb1Index + 1}</h5>
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem(["sprachb", "teil1"], sprachb1Index)}
+                        className="text-red-500 hover:text-red-400"
+                      >
+                        <XCircle size={20} />
+                      </button>
+                    </div>
+                    
                 <TextArea
                   label="Text"
-                  name="sprachb.teil1.text"
-                  value={formData.sprachb.teil1.text}
-                  onChange={handleChange}
+                      value={sprachb1Item.text || ""}
+                      onChange={(e) =>
+                        handleArrayChange(
+                          ["sprachb", "teil1"],
+                          sprachb1Index,
+                          "text",
+                          e.target.value
+                        )
+                      }
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                   rows="2"
                 />
-                {formData.sprachb.teil1.fragen.map((frage, idx) => (
+                    
+                    {(sprachb1Item.fragen || []).map((frage, idx) => (
                   <div
                     key={idx}
-                    className="p-4 my-2 bg-gray-800 rounded-md border border-gray-700"
+                        className="p-4 my-2 bg-gray-700 rounded-md border border-gray-600"
                   >
                     <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() =>
-                          removeArrayItem(["sprachb", "teil1", "fragen"], idx)
+                              removeArrayItem(
+                                ["sprachb", "teil1", sprachb1Index, "fragen"],
+                                idx
+                              )
                         }
                         className="text-red-500 hover:text-red-400"
                       >
-                        <XCircle size={22} />
+                            <XCircle size={20} />
                       </button>
                     </div>
                     <Input
                       label="ID"
                       type="number"
-                      value={frage.id}
+                          value={frage.id || 0}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil1", "fragen"],
+                            handleNestedArrayChange(
+                              ["sprachb", "teil1"],
+                              sprachb1Index,
+                              "fragen",
                           idx,
                           "id",
                           parseInt(e.target.value) || 0
@@ -1004,15 +1246,17 @@ const LesenForm = () => {
                       onBlur={handleBlur}
                     />
                     <div className="ml-4 mt-4">
-                      <h5 className="font-semibold">Options</h5>
-                      {frage.options.map((opt, optIdx) => (
+                          <h6 className="font-semibold">Options</h6>
+                          {(frage.options || []).map((opt, optIdx) => (
                         <div key={optIdx} className="flex gap-2 items-center">
                           <Input
                             label="Option ID"
-                            value={opt.id}
+                                value={opt.id || ""}
                             onChange={(e) =>
                               handleNestedArrayChange(
-                                ["sprachb", "teil1", "fragen"],
+                                    ["sprachb", "teil1"],
+                                    sprachb1Index,
+                                    "fragen",
                                 idx,
                                 "options",
                                 optIdx,
@@ -1025,10 +1269,12 @@ const LesenForm = () => {
                           />
                           <Input
                             label="Option Text"
-                            value={opt.text}
+                                value={opt.text || ""}
                             onChange={(e) =>
                               handleNestedArrayChange(
-                                ["sprachb", "teil1", "fragen"],
+                                    ["sprachb", "teil1"],
+                                    sprachb1Index,
+                                    "fragen",
                                 idx,
                                 "options",
                                 optIdx,
@@ -1043,7 +1289,7 @@ const LesenForm = () => {
                             type="button"
                             onClick={() =>
                               removeArrayItem(
-                                ["sprachb", "teil1", "fragen", idx, "options"],
+                                    ["sprachb", "teil1", sprachb1Index, "fragen", idx, "options"],
                                 optIdx
                               )
                             }
@@ -1057,8 +1303,8 @@ const LesenForm = () => {
                         type="button"
                         onClick={() =>
                           addArrayItem(
-                            ["sprachb", "teil1", "fragen", idx, "options"],
-                            { id: getNextAlphaId(frage.options), text: "" }
+                                ["sprachb", "teil1", sprachb1Index, "fragen", idx, "options"],
+                                { id: getNextAlphaId(frage.options || []), text: "" }
                           )
                         }
                         className="text-indigo-400 mt-2 text-sm"
@@ -1068,10 +1314,12 @@ const LesenForm = () => {
                     </div>
                     <Input
                       label="Antwort"
-                      value={frage.antwort}
+                          value={frage.antwort || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil1", "fragen"],
+                            handleNestedArrayChange(
+                              ["sprachb", "teil1"],
+                              sprachb1Index,
+                              "fragen",
                           idx,
                           "antwort",
                           e.target.value
@@ -1082,10 +1330,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Begründung"
-                      value={frage.begründung}
+                          value={frage.begründung || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil1", "fragen"],
+                            handleNestedArrayChange(
+                              ["sprachb", "teil1"],
+                              sprachb1Index,
+                              "fragen",
                           idx,
                           "begründung",
                           e.target.value
@@ -1099,42 +1349,82 @@ const LesenForm = () => {
                 <button
                   type="button"
                   onClick={() =>
-                    addArrayItem(["sprachb", "teil1", "fragen"], {
-                      id: getNextNumericId(formData.sprachb.teil1.fragen),
+                        addArrayItem(
+                          ["sprachb", "teil1", sprachb1Index, "fragen"],
+                          {
+                            id: getNextNumericId(sprachb1Item.fragen || []),
                       options: [],
                       antwort: "",
                       begründung: "",
-                    })
+                          }
+                        )
                   }
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
                   <PlusCircle size={20} className="mr-2" /> Add Frage
                 </button>
               </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() =>
+                    addArrayItem(["sprachb", "teil1"], {
+                      text: "",
+                      fragen: [],
+                    })
+                  }
+                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-4"
+                >
+                  <PlusCircle size={20} className="mr-2" /> Add Teil 1 Item
+                </button>
+              </div>
 
-              {/* Sprachb Teil 2 */}
-              <div className="mb-6 p-4 bg-gray-800/50 rounded-lg">
-                <h4 className="font-semibold">Teil 2</h4>
+              {/* Sprachb Teil 2 Items */}
+              <div className="mb-6">
+                <h4 className="font-semibold mb-4">Teil 2</h4>
+                {formData.sprachb.teil2.map((sprachb2Item, sprachb2Index) => (
+                  <div key={sprachb2Index} className="p-4 my-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex justify-between items-center mb-4">
+                      <h5 className="font-semibold">Teil 2 Item #{sprachb2Index + 1}</h5>
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem(["sprachb", "teil2"], sprachb2Index)}
+                        className="text-red-500 hover:text-red-400"
+                      >
+                        <XCircle size={20} />
+                      </button>
+                    </div>
+                    
                 <TextArea
                   label="Text"
-                  name="sprachb.teil2.text"
-                  value={formData.sprachb.teil2.text}
-                  onChange={handleChange}
+                      value={sprachb2Item.text || ""}
+                      onChange={(e) =>
+                        handleArrayChange(
+                          ["sprachb", "teil2"],
+                          sprachb2Index,
+                          "text",
+                          e.target.value
+                        )
+                      }
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                   rows="2"
                 />
-                {formData.sprachb.teil2.options.map((opt, idx) => (
+                    
+                    {(sprachb2Item.options || []).map((opt, idx) => (
                   <div
                     key={idx}
-                    className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 my-2 bg-gray-800 rounded-md"
+                        className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 my-2 bg-gray-700 rounded-md"
                   >
                     <Input
                       label="ID"
-                      value={opt.id}
+                          value={opt.id || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil2", "options"],
+                            handleNestedArrayChange(
+                              ["sprachb", "teil2"],
+                              sprachb2Index,
+                              "options",
                           idx,
                           "id",
                           e.target.value
@@ -1145,10 +1435,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Text"
-                      value={opt.text}
+                          value={opt.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil2", "options"],
+                            handleNestedArrayChange(
+                              ["sprachb", "teil2"],
+                              sprachb2Index,
+                              "options",
                           idx,
                           "text",
                           e.target.value
@@ -1160,10 +1452,12 @@ const LesenForm = () => {
                     <Input
                       label="Antwort"
                       type="number"
-                      value={opt.antwort}
+                          value={opt.antwort || 0}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil2", "options"],
+                            handleNestedArrayChange(
+                              ["sprachb", "teil2"],
+                              sprachb2Index,
+                              "options",
                           idx,
                           "antwort",
                           parseInt(e.target.value) || 0
@@ -1174,10 +1468,12 @@ const LesenForm = () => {
                     />
                     <Input
                       label="Begründung"
-                      value={opt.begründung}
+                          value={opt.begründung || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil2", "options"],
+                            handleNestedArrayChange(
+                              ["sprachb", "teil2"],
+                              sprachb2Index,
+                              "options",
                           idx,
                           "begründung",
                           e.target.value
@@ -1189,27 +1485,48 @@ const LesenForm = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        removeArrayItem(["sprachb", "teil2", "options"], idx)
+                            removeArrayItem(
+                              ["sprachb", "teil2", sprachb2Index, "options"],
+                              idx
+                            )
                       }
                       className="mt-6 text-red-500 hover:text-red-400"
                     >
-                      <XCircle size={22} />
+                          <XCircle size={20} />
                     </button>
                   </div>
                 ))}
                 <button
                   type="button"
                   onClick={() =>
-                    addArrayItem(["sprachb", "teil2", "options"], {
-                      id: getNextAlphaId(formData.sprachb.teil2.options),
+                        addArrayItem(
+                          ["sprachb", "teil2", sprachb2Index, "options"],
+                          {
+                            id: getNextAlphaId(sprachb2Item.options || []),
                       text: "",
                       antwort: 0,
                       begründung: "",
-                    })
+                          }
+                        )
                   }
                   className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                 >
                   <PlusCircle size={20} className="mr-2" /> Add Option
+                    </button>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() =>
+                    addArrayItem(["sprachb", "teil2"], {
+                      text: "",
+                      options: [],
+                    })
+                  }
+                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-4"
+                >
+                  <PlusCircle size={20} className="mr-2" /> Add Teil 2 Item
                 </button>
               </div>
             </div>

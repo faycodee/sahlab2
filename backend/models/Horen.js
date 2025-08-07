@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 // Define the schema for Hören
-const HörenSchema = new Schema(
+const HorenSchema = new Schema(
   {
     teil1: [
       {
@@ -53,6 +53,6 @@ const HörenSchema = new Schema(
 );
 
 // Create the model
-const Hören = mongoose.model("Hören", HörenSchema);
+const Horen = mongoose.model("Horen", HorenSchema);
 
-module.exports = Hören;
+module.exports = Horen;
