@@ -10,8 +10,8 @@ import {
   Copy,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api/lesen";
-// const API_URL = "https://sahlab2.onrender.com/api/lesen";
+// const API_URL = "http://localhost:5000/api/lesen";
+const API_URL = "https://sahlab2.onrender.com/api/lesen";
 
 const Lesen = () => {
   const [data, setData] = useState([]);
