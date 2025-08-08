@@ -10,8 +10,9 @@ import {
   Copy,
 } from "lucide-react";
 
-// const API_URL = "http://localhost:5000/api/lesen"; 
-const API_URL = "https://sahlab2.onrender.com/api/lesen";
+
+const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/lesen":import.meta.env.VITE_API_URL +"/api/lesen";
+
 
 const Lesen = () => {
   const [data, setData] = useState([]);

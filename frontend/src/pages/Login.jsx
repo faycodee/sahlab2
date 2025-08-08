@@ -8,7 +8,8 @@ const Login = ({ setUser }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_URL = "https://sahlab2.onrender.com/api/users/login";
+  const API_URL =   window.location.hostname === "localhost" ? "http://localhost:5000/api/users/login":
+  import.meta.env.VITE_API_URL + "/api/users/login";
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -4,8 +4,7 @@ import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 // Use your local API for Hören
-// const API_URL = "http://localhost:5000/api/horen";
-const API_URL = "https://sahlab2.onrender.com/api/horen";
+const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/horen":import.meta.env.VITE_API_URL +"/api/horen";
 
 
 const Horen = () => {

@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Save, ArrowLeft, PlusCircle, XCircle } from "lucide-react";
 
-// const API_URL = "http://localhost:5000/api/schreiben";
-const API_URL = "https://sahlab2.onrender.com/api/schreiben";
+
+const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/schreiben":import.meta.env.VITE_API_URL +"/api/schreiben";
+
 
 const initialFormState = {
   id: 1,

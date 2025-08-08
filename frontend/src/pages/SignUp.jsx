@@ -1,8 +1,11 @@
-import { useState } from "react"; 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const SignUp = ({ setUser }) => {
-  const API_URL = "https://sahlab2.onrender.com/api/users/register";
+  const API_URL =
+    window.location.hostname === "localhost"
+      ? "https://localhost:5000/api/users/register"
+      : import.meta.env.VITE_API_URL + "/api/users/register";
 
   const [form, setForm] = useState({
     username: "",
@@ -104,7 +107,9 @@ const SignUp = ({ setUser }) => {
           type="submit"
           disabled={loading}
           className={`w-full flex justify-center items-center gap-2 py-2 rounded text-white transition ${
-            loading ? "bg-green-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+            loading
+              ? "bg-green-400 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700"
           }`}
         >
           {loading ? (

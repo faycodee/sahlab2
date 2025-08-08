@@ -39,7 +39,7 @@ const upload = multer({
 });
 
 // Middleware
-const allowedOrigins = ["http://localhost:5173", "https://sahlab2.vercel.app","https://adminsahlab2.vercel.app/"];
+const allowedOrigins = ["http://localhost:5173", "https://sahlab2.vercel.app","https://adminsahlab2.vercel.app"];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {

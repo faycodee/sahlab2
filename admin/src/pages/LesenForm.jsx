@@ -68,8 +68,8 @@ const TextArea = ({ label, name, error, onFocus, onBlur, ...props }) => (
 );
 
 const LesenForm = () => {
-  // const API_URL ="http://localhost:5000/api/lesen"
-  const API_URL = "https://sahlab2.onrender.com/api/lesen";
+  const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/lesen":import.meta.env.VITE_API_URL +"/api/lesen";
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialFormState);

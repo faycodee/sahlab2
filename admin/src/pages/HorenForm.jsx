@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Save, ArrowLeft, PlusCircle, XCircle } from "lucide-react";
 
-// const API_URL = "http://localhost:5000/api/horen";
-const API_URL = "https://sahlab2.onrender.com/api/horen";
+const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/horen":import.meta.env.VITE_API_URL +"/api/horen";
+
 
 const initialFormState = {
   teil1: [],

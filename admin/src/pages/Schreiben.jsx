@@ -3,8 +3,9 @@ import axios from "axios";
 import { Plus, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// const API_URL = "http://localhost:5000/api/schreiben";
-const API_URL = "https://sahlab2.onrender.com/api/schreiben";
+
+const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/schreiben":import.meta.env.VITE_API_URL +"/api/schreiben";
+
 
 const Schreiben = () => {
   const [data, setData] = useState([]);
