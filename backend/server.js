@@ -1,14 +1,46 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const multer = require("multer");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename with timestamp
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
 
 // Connect to MongoDB
 const uri = process.env.MONGO_URI;
@@ -34,9 +66,18 @@ const SchreibenRoutes = require("./routes/SchreibenRoutes");
 console.log("SchreibenRoutes type:", typeof SchreibenRoutes);
 console.log("SchreibenRoutes value:", SchreibenRoutes);
 
-app.use("/api/lesen", LesenRoutes); // Line 23 - this might be the issue
+console.log("Loading UserRoutes...");
+const UserRoutes = require("./routes/UserRoutes");
+console.log("UserRoutes type:", typeof UserRoutes);
+console.log("UserRoutes value:", UserRoutes);
+
+// Make upload middleware available to routes
+app.locals.upload = upload;
+
+app.use("/api/lesen", LesenRoutes);
 app.use("/api/horen", horenRoutes);
 app.use("/api/schreiben", SchreibenRoutes);
+app.use("/api/users", UserRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
