@@ -1,52 +1,75 @@
+// Lesen.jsx (Parent Component)
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+// import Teil1 from '../lesen/teil1';
+// import Teil2 from '../lesen/teil2';
+// import Teil3 from '../lesen/teil3';
+// import SprachTeil1 from '../lesen/spteil1';
+// import SprachTeil2 from '../lesen/spteil2';
 
-import React, { useEffect, useRef } from "react";
-import { gsap } from "gsap";
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000/api/lesen"
+    : import.meta.env.VITE_API_URL + "/api/lesen";
+
 const Lesen = () => {
-      const heroRef = useRef(null);
-    
-      useEffect(() => {
-        gsap.from(heroRef.current, { opacity: 0, y: -50, duration: 1 });
-      }, []);
-    return (
-           <section
-      ref={heroRef}
-      className="w-full  h-[86vh] bg-gradient-to-r from-green-50 to-blue-100 py-16 md:py-24"
-    >
-      <div className="container mx-auto flex flex-col md:flex-row items-center gap-10 px-4">
-        <div className="md:w-1/2 text-center md:text-left">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4">
-            German Courses <span className="text-green-700">A1–C2</span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-700 mb-6">
-            Learn German with interactive lessons, quizzes, and expert guidance.
-            Rapid progress guaranteed thanks to modern teaching methods,
-            intensive support, and a recognized level system.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-            <a
-              href="#courses"
-              className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 transition"
-            >
-              Explore Courses
-            </a>
-            <a
-              href="#about"
-              className="border border-green-600 text-green-600 px-6 py-2 rounded hover:bg-green-50 transition"
-            >
-              Learn More
-            </a>
-          </div>
-        </div>
-        <div className="md:w-1/2 flex justify-center">
-          <img
-            src="/hero-image.jpg"
-            alt="Students learning German"
-            className="rounded-lg shadow-lg w-full max-w-md object-cover"
-          />
+ 
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    axios.get(API_URL).then((res) => {
+      setData(res.data);
+      console.log(data);
+    });
+  }, []);
+  const HandelDetails = (id) => {
+    navigate(`/lesen/${id}/teil1`);
+  };
+
+  return (
+    <div className="p-4 space-y-10 w-full  h-[86vh] bg-gradient-to-r from-green-50 to-blue-100 py-16 md:py-24">
+      <div>
+        <h1 className="font-mono mb-10"></h1>
+        <h1 className="text-4xl  md:text-5xl font-extrabold text-gray-800 mb-10">
+          Themat li kaynin :<span className="text-green-700">B2</span>
+        </h1>
+        <div>
+          {data && (
+            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 rounded-3xl ">
+              {/* ... thead ... */}
+              <tbody>
+                {data.map((item) => (
+                  <tr
+                    key={item._id}
+                    onClick={() => HandelDetails(item._id)}
+                    className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+                  >
+                    <td className="px-6 py-4">{item.id}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                      {item.thema}
+                    </td>
+                    <td className="px-6 py-4">{item.themaTr}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
-    </section>
-    );
+      {/* <Teil1 data={data.teile.teil1} onScore={(s) => updateScore('Teil 1', s)} /> */}
+      {/* <Teil2 data={data.teile.teil2} onScore={(s) => updateScore('Teil 2', s)} />
+      <Teil3 data={data.teile.teil3} onScore={(s) => updateScore('Teil 3', s)} />
+      <SprachTeil1 data={data.sprachb.teil1} onScore={(s) => updateScore('SprachTeil 1', s)} />
+      <SprachTeil2 data={data.sprachb.teil2} onScore={(s) => updateScore('SprachTeil 2', s)} /> */}
+
+      <div className="text-xl font-bold text-center">
+        {/* Gesamtergebnis:  */}
+        {/* {totalScore} Punkte */}
+      </div>
+    </div>
+  );
 };
 
 export default Lesen;

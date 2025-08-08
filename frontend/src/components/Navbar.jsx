@@ -97,6 +97,7 @@ const Navbar = ({ user, setUser }) => {
           }`}
         >
           <NavLink
+               onClick={() => setMenuOpen(false)}
             to="/lesen"
             className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2 w-full md:w-auto text-center md:text-left"
           >
@@ -104,12 +105,14 @@ const Navbar = ({ user, setUser }) => {
           </NavLink>
           <NavLink
             to="/hören"
+            onClick={() => setMenuOpen(false)}
             className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2 w-full md:w-auto text-center md:text-left"
           >
             Hören
           </NavLink>
           <NavLink
             to="/schreiben"
+            onClick={() => setMenuOpen(false)}
             className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2 w-full md:w-auto text-center md:text-left"
           >
             Schreiben
@@ -159,7 +162,8 @@ const Navbar = ({ user, setUser }) => {
                 <NavLink
                   to="/profile"
                   className="block text-black px-4 py-2 hover:bg-green-50 hover:text-black/30"
-                  onClick={() => setDropdownOpen(false)}
+                  // onClick={() => setDropdownOpen(false)}
+                  onClick={() => setMenuOpen(false)}
                 >
                   Edit Profile
                 </NavLink>

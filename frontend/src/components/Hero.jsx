@@ -29,7 +29,7 @@ const Hero = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
             <a
-             
+             href="lesen"
               className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 transition"
             >
               Explore 
