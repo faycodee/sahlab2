@@ -5,12 +5,15 @@ const Login = ({ setUser }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-//   const API_URL = "http://localhost:5000/api/users/login";
+
   const API_URL = "https://sahlab2.onrender.com/api/users/login";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
     try {
       const res = await fetch(API_URL, {
         method: "POST",
@@ -20,16 +23,17 @@ const Login = ({ setUser }) => {
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem("token", data.token);
-              localStorage.setItem("user", JSON.stringify(data.user));
-
+        localStorage.setItem("user", JSON.stringify(data.user));
         setUser(data.user);
         navigate("/");
       } else {
         setError(data.error || "Login failed");
       }
     } catch (err) {
-        console.error("Fetch error:", err);
+      console.error("Fetch error:", err);
       setError("Network error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,9 +63,19 @@ const Login = ({ setUser }) => {
         />
         <button
           type="submit"
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+          disabled={loading}
+          className={`w-full flex justify-center items-center gap-2 py-2 rounded text-white transition ${
+            loading ? "bg-green-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+          }`}
         >
-          Login
+          {loading ? (
+            <>
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              Lade...
+            </>
+          ) : (
+            "Login"
+          )}
         </button>
       </form>
     </div>

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState } from "react"; 
 import { useNavigate } from "react-router-dom";
 
 const SignUp = ({ setUser }) => {
-    // const API_URL = "http://localhost:5000/api/users/register";
-    const API_URL = "https://sahlab2.onrender.com/api/users/register";
+  const API_URL = "https://sahlab2.onrender.com/api/users/register";
+
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -12,6 +12,7 @@ const SignUp = ({ setUser }) => {
     lastName: "",
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // ✅ Neu
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -21,6 +22,7 @@ const SignUp = ({ setUser }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true); // ✅ Start
     try {
       const res = await fetch(API_URL, {
         method: "POST",
@@ -37,8 +39,10 @@ const SignUp = ({ setUser }) => {
         setError(data.error || "Sign up failed");
       }
     } catch (err) {
-        console.error("Fetch error:", err);
+      console.error("Fetch error:", err);
       setError("Network error");
+    } finally {
+      setLoading(false); // ✅ Stopp
     }
   };
 
@@ -95,11 +99,22 @@ const SignUp = ({ setUser }) => {
           onChange={handleChange}
           required
         />
+
         <button
           type="submit"
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+          disabled={loading}
+          className={`w-full flex justify-center items-center gap-2 py-2 rounded text-white transition ${
+            loading ? "bg-green-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+          }`}
         >
-          Sign Up
+          {loading ? (
+            <>
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              Wird geladen...
+            </>
+          ) : (
+            "Sign Up"
+          )}
         </button>
       </form>
     </div>

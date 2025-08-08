@@ -39,12 +39,17 @@ const upload = multer({
 });
 
 // Middleware
-app.use(
-  cors({
-    origin: "http://localhost:5173", // or your frontend port
-    credentials: true,
-  })
-);
+const allowedOrigins = ["http://localhost:5173", "https://sahlab2.vercel.app","https://adminsahlab2.vercel.app/"];
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 app.use((req, res, next) => {
