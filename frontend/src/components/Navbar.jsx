@@ -25,32 +25,32 @@ const Navbar = ({ user, setUser }) => {
   };
 
   useEffect(() => {
-    loadUserFromStorage();
-
-    // 1. Listen for changes in other tabs
+    loadUserFromStorage(); // ✅ load once on mount
+  
     const handleStorageChange = (event) => {
       if (event.key === "user") {
         loadUserFromStorage();
       }
     };
-
-    // 2. Watch for changes in the same tab (poll every 500ms)
+  
     const interval = setInterval(() => {
       const currentUser = localStorage.getItem("user");
       const parsedUser = currentUser ? JSON.parse(currentUser) : null;
       const stateUser = user ? JSON.stringify(user) : null;
-
+  
       if (JSON.stringify(parsedUser) !== stateUser) {
-        setUser(parsedUser);
+        setUser(parsedUser); // Update from storage
       }
     }, 500);
-
+  
     window.addEventListener("storage", handleStorageChange);
+  
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(interval);
     };
-  }, [user]);
+  }, []); // ✅ empty dependency array
+  
 
   const handleLogout = () => {
     localStorage.removeItem("user");
