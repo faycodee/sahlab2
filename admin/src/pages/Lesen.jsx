@@ -10,14 +10,8 @@ import {
   Copy,
 } from "lucide-react";
 
-const isDevelopment = process.env.NODE_ENV === 'development' || 
-                     window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
-
-// API Base URL configuration
-const API_BASE_URL = isDevelopment 
-  ? 'http://localhost:5000/api'
-  : 'https://sahlab2.onrender.com/api';
+// const API_URL = "http://localhost:5000/api/lesen"; 
+const API_URL = "https://sahlab2.onrender.com/api/lesen";
 
 const Lesen = () => {
   const [data, setData] = useState([]);
