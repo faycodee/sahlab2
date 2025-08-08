@@ -92,33 +92,33 @@ const Navbar = ({ user, setUser }) => {
           </svg>
         </button>
         <div
-          className={`flex-col md:flex-row md:flex items-center gap-8 absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent shadow-md md:shadow-none transition-all duration-300 z-20 ${
+          className={`flex-col md:flex-row md:flex items-center gap-4 absolute md:static top-16 left-0 w-full md:w-auto bg-white md:bg-transparent shadow-md md:shadow-none transition-all duration-300 z-20 px-4 md:px-0 py-4 md:py-0 ${
             menuOpen ? "flex" : "hidden"
           }`}
         >
           <NavLink
             to="/lesen"
-            className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2"
+            className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2 w-full md:w-auto text-center md:text-left"
           >
             Lesen
           </NavLink>
           <NavLink
             to="/hören"
-            className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2"
+            className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2 w-full md:w-auto text-center md:text-left"
           >
             Hören
           </NavLink>
           <NavLink
             to="/schreiben"
-            className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2"
+            className="text-gray-700 font-semibold hover:text-green-700 transition px-4 py-2 w-full md:w-auto text-center md:text-left"
           >
             Schreiben
           </NavLink>
-          <div className="relative">
+          <div className="relative w-full md:w-auto">
             {user ? (
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex max-sm:mb-7 items-center gap-2 bg-green-100 px-3 py-1 rounded-full hover:bg-green-200 transition"
+                className="flex items-center justify-center md:justify-start gap-2 bg-green-100 px-3 py-2 rounded-full hover:bg-green-200 transition w-full md:w-auto"
               >
                    <User/>  <span className="font-medium text-green-700">
             {user.firstName || "User"}
@@ -138,23 +138,23 @@ const Navbar = ({ user, setUser }) => {
                 </svg>
               </button>
             ) : (
-              <div className="max-sm:mb-10 flex gap-2 mt-2 md:mt-0">
+              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                 <NavLink
                   to="/login"
-                  className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 transition"
+                  className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition text-center font-medium"
                 >
                   Login
                 </NavLink>
                 <NavLink
                   to="/signup"
-                  className="border mr-3 border-green-600 text-green-600 px-4 py-1 rounded hover:bg-green-50 transition"
+                  className="border border-green-600 text-green-600 px-6 py-2 rounded hover:bg-green-50 transition text-center font-medium"
                 >
                   Sign Up
                 </NavLink>
               </div>
             )}
             {dropdownOpen && (
-              <div className="absolute mr-3 right-0 mt-2 w-40 bg-white border rounded shadow-lg z-10">
+              <div className="absolute right-0 mt-2 w-full md:w-40 bg-white border rounded shadow-lg z-10">
          
                 <NavLink
                   to="/profile"
