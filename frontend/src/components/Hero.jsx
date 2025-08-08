@@ -19,8 +19,8 @@ const Hero = () => {
           B2 nchalah f  <span className="text-green-700"> Jib !</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-6">
-           had website tegad bach y3awn lmgharba li baghyin ysoviw rashom, yjibo B2, ymchiw ldeutschland
-           aghlabiya dyal nass kays9to ha9ach endhom mochkil f sprachbausteine + ma7afdinch mzyan lesen  w kaynsawh dghya 
+           had website tegad bach y3awn lmgharba li baghyin ysoviw rashom, yjibo B2, ymchiw ldeutschland .
+           Aghlabiya dyal nass kays9to ha9ach endhom mochkil f sprachbausteine + ma7afdinch mzyan lesen  w kaynsawh dghya 
            hadchi elach ymklik hena thefd , traj3 , w tfehm ha9ach had site  fih
            molakhassat lkola text w f sprachbausteine kayfhmk kola haja w elach tdart tema w hören 3ibara ela kodat f 9isas
            .

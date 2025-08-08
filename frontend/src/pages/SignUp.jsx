@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const SignUp = ({ setUser }) => {
+    // const API_URL = "http://localhost:5000/api/users/register";
+    const API_URL = "https://sahlab2.onrender.com/api/users/register";
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -20,7 +22,7 @@ const SignUp = ({ setUser }) => {
     e.preventDefault();
     setError("");
     try {
-      const res = await fetch("http://localhost:5000/api/users/register", {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
