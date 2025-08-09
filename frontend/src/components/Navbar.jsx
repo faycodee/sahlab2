@@ -53,9 +53,11 @@ const Navbar = ({ user, setUser }) => {
   
 
   const handleLogout = () => {
+ 
     localStorage.removeItem("user");
     setUser(null);
     setDropdownOpen(false);
+    setMenuOpen(false);
     navigate("/login");
   };
 
