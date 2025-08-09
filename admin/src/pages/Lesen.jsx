@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom"; // Import Link
+import { Link } from "react-router-dom";
 import {
   Plus,
   Edit,
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Copy,
 } from "lucide-react";
 
-
-const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/lesen":import.meta.env.VITE_API_URL +"/api/lesen";
-
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000/api/lesen"
+    : (import.meta.env.VITE_API_URL || "") + "/api/lesen";
 
 const Lesen = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  // Changed itemsPerPage to 10 as requested
+  const itemsPerPage = 10;
 
   const fetchData = async () => {
     setLoading(true);
@@ -38,12 +39,13 @@ const Lesen = () => {
     fetchData();
   }, []);
 
-
+  // Pagination logic
   const paginatedData = data.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
   const totalPages = Math.ceil(data.length / itemsPerPage);
+
   const confirmDelete = async (id) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this LESEN item?"
@@ -72,7 +74,6 @@ const Lesen = () => {
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
           Manage LESEN
         </h2>
-        {/* MODIFICATION HNA: Sta3melna Link */}
         <Link
           to="/lesen/new"
           className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
@@ -84,7 +85,22 @@ const Lesen = () => {
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          {/* ... thead ... */}
+          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+              <th scope="col" className="px-6 py-3">
+                ID
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Thema
+              </th>
+              <th scope="col" className="px-6 py-3">
+                Thema TR
+              </th>
+              <th scope="col" className="px-6 py-3 text-right">
+                Actions
+              </th>
+            </tr>
+          </thead>
           <tbody>
             {paginatedData.map((item) => (
               <tr
@@ -103,7 +119,7 @@ const Lesen = () => {
                   >
                     <Edit size={18} />
                   </Link>
-                
+
                   <button
                     onClick={() => confirmDelete(item._id)}
                     className="p-2 text-red-500 hover:text-red-700"
@@ -116,7 +132,40 @@ const Lesen = () => {
           </tbody>
         </table>
       </div>
-      {/* ... Pagination controls ... */}
+
+      {/* Pagination controls */}
+      <div className="flex justify-between items-center mt-6">
+        <span className="text-sm text-gray-700 dark:text-gray-400">
+          Showing page{" "}
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {currentPage}
+          </span>{" "}
+          of{" "}
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {totalPages}
+          </span>
+        </span>
+        <div className="inline-flex mt-2 xs:mt-0">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="flex items-center justify-center px-4 h-10 text-base font-medium text-white bg-gray-800 rounded-l hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={20} className="mr-2" />
+            Prev
+          </button>
+          <button
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            className="flex items-center justify-center px-4 h-10 text-base font-medium text-white bg-gray-800 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight size={20} className="ml-2" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

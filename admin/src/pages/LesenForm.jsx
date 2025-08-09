@@ -68,7 +68,10 @@ const TextArea = ({ label, name, error, onFocus, onBlur, ...props }) => (
 );
 
 const LesenForm = () => {
-  const API_URL = window.location.hostname === "localhost" ? "http://localhost:5000/api/lesen":import.meta.env.VITE_API_URL +"/api/lesen";
+  const API_URL =
+    window.location.hostname === "localhost"
+      ? "http://localhost:5000/api/lesen"
+      : (import.meta.env.VITE_API_URL || "") + "/api/lesen";
 
   const { id } = useParams();
   const navigate = useNavigate();
@@ -89,7 +92,7 @@ const LesenForm = () => {
         !Array.isArray(fetchedData[key])
       ) {
         // Handle nested objects like teile and sprachb
-        if (key === 'teile' || key === 'sprachb') {
+        if (key === "teile" || key === "sprachb") {
           merged[key] = { ...initialFormState[key] };
           for (const subKey in fetchedData[key]) {
             if (Array.isArray(fetchedData[key][subKey])) {
@@ -99,7 +102,7 @@ const LesenForm = () => {
             }
           }
         } else {
-        merged[key] = { ...initialFormState[key], ...fetchedData[key] };
+          merged[key] = { ...initialFormState[key], ...fetchedData[key] };
         }
       } else {
         merged[key] = fetchedData[key];
@@ -126,79 +129,62 @@ const LesenForm = () => {
       // Restore draft if exists
       const draft = localStorage.getItem("lesenFormDraft");
       if (draft) {
-        setFormData(JSON.parse(draft));
+        try {
+          setFormData(JSON.parse(draft));
+        } catch (e) {
+          console.error("Failed to parse draft", e);
+          localStorage.removeItem("lesenFormDraft");
+        }
       }
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, API_URL]);
 
-  // --- Event Handlers with stopPropagation to prevent "logout" issue ---
+  // --- Event Handlers ---
   const handleFocus = useCallback((e) => e.stopPropagation(), []);
   const handleBlur = useCallback((e) => e.stopPropagation(), []);
 
   // --- Immutable State Update Handlers ---
 
-  // Generic handler for simple inputs, using a deep copy for safety.
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    const keys = name.split(".");
-
-    setFormData((prev) => {
-      const newState = JSON.parse(JSON.stringify(prev)); // Deep copy
-      let current = newState;
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
-      }
-      current[keys[keys.length - 1]] = value;
-      return newState;
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  // Generic handler for array inputs, ensuring immutability.
-  const handleArrayChange = useCallback((path, index, field, value) => {
+  // Corrected generic handler for all nested changes
+  const handleNestedChange = useCallback((path, value) => {
     setFormData((prev) => {
       const newState = JSON.parse(JSON.stringify(prev));
       let current = newState;
-      path.forEach((key) => {
-        current = current[key];
-      });
-      if (field) {
-        current[index] = { ...current[index], [field]: value };
-      } else {
-        current[index] = value;
+      for (let i = 0; i < path.length - 1; i++) {
+        if (current[path[i]] === undefined) {
+          if (typeof path[i + 1] === "number") {
+            current[path[i]] = [];
+          } else {
+            current[path[i]] = {};
+          }
+        }
+        current = current[path[i]];
       }
+      current[path[path.length - 1]] = value;
       return newState;
     });
   }, []);
-
-  // Handler for deeply nested arrays (e.g., question options)
-  const handleNestedArrayChange = useCallback(
-    (path, index, nestedArrayName, nestedIndex, field, value) => {
-      setFormData((prev) => {
-        const newState = JSON.parse(JSON.stringify(prev));
-        let parentArray = newState;
-        path.forEach((key) => {
-          parentArray = parentArray[key];
-        });
-        const parentObject = parentArray[index];
-        parentObject[nestedArrayName][nestedIndex] = {
-          ...parentObject[nestedArrayName][nestedIndex],
-          [field]: value,
-        };
-        return newState;
-      });
-    },
-    []
-  );
 
   // Generic handler to add an item to an array
   const addArrayItem = useCallback((path, newItem) => {
     setFormData((prev) => {
       const newState = JSON.parse(JSON.stringify(prev));
       let current = newState;
-      for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]];
+      for (let i = 0; i < path.length; i++) {
+        if (i === path.length - 1) {
+          if (!Array.isArray(current[path[i]])) {
+            current[path[i]] = [];
+          }
+          current[path[i]].push(newItem);
+        } else {
+          current = current[path[i]];
+        }
       }
-      current[path[path.length - 1]].push(newItem);
       return newState;
     });
   }, []);
@@ -211,19 +197,23 @@ const LesenForm = () => {
       for (let i = 0; i < path.length - 1; i++) {
         current = current[path[i]];
       }
-      current[path[path.length - 1]].splice(index, 1);
+      const arrKey = path[path.length - 1];
+      if (Array.isArray(current[arrKey])) {
+        current[arrKey].splice(index, 1);
+      }
       return newState;
     });
   }, []);
 
   // --- ID Generation Helpers ---
   const getNextNumericId = (arr, start = 1) =>
-    arr.length > 0 ? Math.max(...arr.map((i) => i.id)) + 1 : start;
+    arr.length > 0 ? Math.max(...arr.map((i) => i.id || 0)) + 1 : start;
   const getNextZeroNumericId = (arr) =>
-    arr.length > 0 ? Math.max(...arr.map((i) => i.id)) + 1 : 0;
+    arr.length > 0 ? Math.max(...arr.map((i) => i.id || 0)) + 1 : 0;
   const getNextAlphaId = (arr) => {
-    if (!arr.length) return "a";
+    if (!arr || !arr.length) return "a";
     const last = arr[arr.length - 1].id;
+    if (!last) return "a";
     return String.fromCharCode(last.charCodeAt(0) + 1);
   };
 
@@ -232,24 +222,6 @@ const LesenForm = () => {
     const newErrors = {};
     if (!formData.thema) newErrors.thema = "Thema is required.";
     if (!formData.themaTr) newErrors.themaTr = "Thema TR is required.";
-    
-    // Validate that arrays exist and are properly structured
-    if (!Array.isArray(formData.teile.teil1)) {
-      newErrors["teile.teil1"] = "Teil 1 must be an array.";
-    }
-    if (!Array.isArray(formData.teile.teil2)) {
-      newErrors["teile.teil2"] = "Teil 2 must be an array.";
-    }
-    if (!Array.isArray(formData.teile.teil3)) {
-      newErrors["teile.teil3"] = "Teil 3 must be an array.";
-    }
-    if (!Array.isArray(formData.sprachb.teil1)) {
-      newErrors["sprachb.teil1"] = "Sprachb Teil 1 must be an array.";
-    }
-    if (!Array.isArray(formData.sprachb.teil2)) {
-      newErrors["sprachb.teil2"] = "Sprachb Teil 2 must be an array.";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -392,232 +364,261 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Teil 1 Details
               </h3>
-              
+
               {/* Teil 1 Items */}
               {formData.teile.teil1.map((teil1Item, teil1Index) => (
-                <div key={teil1Index} className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700">
+                <div
+                  key={teil1Index}
+                  className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700"
+                >
                   <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-semibold">Teil 1 Item #{teil1Index + 1}</h4>
+                    <h4 className="font-semibold">
+                      Teil 1 Item #{teil1Index + 1}
+                    </h4>
                     <button
                       type="button"
-                      onClick={() => removeArrayItem(["teile", "teil1"], teil1Index)}
+                      onClick={() =>
+                        removeArrayItem(["teile", "teil1"], teil1Index)
+                      }
                       className="text-red-500 hover:text-red-400"
                     >
                       <XCircle size={22} />
                     </button>
                   </div>
-                  
-              <Input
-                label="Titel"
+
+                  <Input
+                    label="Titel"
                     value={teil1Item.titel || ""}
                     onChange={(e) =>
-                      handleArrayChange(
-                        ["teile", "teil1"],
-                        teil1Index,
-                        "titel",
+                      handleNestedChange(
+                        ["teile", "teil1", teil1Index, "titel"],
                         e.target.value
                       )
                     }
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
-              <Input
-                label="Photo URL"
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                  />
+                  <Input
+                    label="Photo URL"
                     value={teil1Item.photo || ""}
                     onChange={(e) =>
-                      handleArrayChange(
-                        ["teile", "teil1"],
-                        teil1Index,
-                        "photo",
+                      handleNestedChange(
+                        ["teile", "teil1", teil1Index, "photo"],
                         e.target.value
                       )
                     }
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                  />
 
-              {/* Überschriften */}
-              <div className="mt-6">
+                  {/* Überschriften */}
+                  <div className="mt-6">
                     <h5 className="font-semibold mb-2">Überschriften</h5>
                     {(teil1Item.Überschriften || []).map((item, index) => (
-                  <div
-                    key={index}
+                      <div
+                        key={index}
                         className="flex items-center gap-4 p-3 my-2 bg-gray-700 rounded-md"
-                  >
-                    <Input
-                      label="ID"
+                      >
+                        <Input
+                          label="ID"
                           value={item.id || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil1"],
-                              teil1Index,
-                              "Überschriften",
-                          index,
-                          "id",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Text"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil1",
+                                teil1Index,
+                                "Überschriften",
+                                index,
+                                "id",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Text"
                           value={item.text || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil1"],
-                              teil1Index,
-                              "Überschriften",
-                          index,
-                          "text",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil1",
+                                teil1Index,
+                                "Überschriften",
+                                index,
+                                "text",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeArrayItem(
+                              [
+                                "teile",
+                                "teil1",
+                                teil1Index,
+                                "Überschriften",
+                              ],
+                              index
+                            )
+                          }
+                          className="mt-6 text-red-500 hover:text-red-400"
+                        >
+                          <XCircle size={20} />
+                        </button>
+                      </div>
+                    ))}
                     <button
                       type="button"
                       onClick={() =>
-                        removeArrayItem(
-                              ["teile", "teil1", teil1Index, "Überschriften"],
-                          index
-                        )
-                      }
-                      className="mt-6 text-red-500 hover:text-red-400"
-                    >
-                          <XCircle size={20} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
                         addArrayItem(
                           ["teile", "teil1", teil1Index, "Überschriften"],
                           {
-                            id: getNextAlphaId(teil1Item.Überschriften || []),
-                      text: "",
+                            id: getNextAlphaId(
+                              teil1Item.Überschriften || []
+                            ),
+                            text: "",
                           }
                         )
-                  }
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Überschrift
-                </button>
-              </div>
+                      }
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
+                    >
+                      <PlusCircle size={20} className="mr-2" /> Add
+                      Überschrift
+                    </button>
+                  </div>
 
-              {/* Texte */}
-              <div className="mt-6">
+                  {/* Texte */}
+                  <div className="mt-6">
                     <h5 className="font-semibold mb-2">Texte</h5>
                     {(teil1Item.Texte || []).map((item, index) => (
-                  <div
-                    key={index}
+                      <div
+                        key={index}
                         className="p-4 my-2 bg-gray-700 rounded-md border border-gray-600"
-                  >
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() =>
+                      >
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() =>
                               removeArrayItem(
                                 ["teile", "teil1", teil1Index, "Texte"],
                                 index
                               )
-                        }
-                        className="text-red-500 hover:text-red-400"
-                      >
+                            }
+                            className="text-red-500 hover:text-red-400"
+                          >
                             <XCircle size={20} />
-                      </button>
-                    </div>
-                    <Input
-                      label="ID"
-                      type="number"
+                          </button>
+                        </div>
+                        <Input
+                          label="ID"
+                          type="number"
                           value={item.id || 0}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil1"],
-                              teil1Index,
-                              "Texte",
-                          index,
-                          "id",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <TextArea
-                      label="Text"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil1",
+                                teil1Index,
+                                "Texte",
+                                index,
+                                "id",
+                              ],
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <TextArea
+                          label="Text"
                           value={item.text || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil1"],
-                              teil1Index,
-                              "Texte",
-                          index,
-                          "text",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                      rows="4"
-                    />
-                    <Input
-                      label="Antwort"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil1",
+                                teil1Index,
+                                "Texte",
+                                index,
+                                "text",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                          rows="4"
+                        />
+                        <Input
+                          label="Antwort"
                           value={item.antwort || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil1"],
-                              teil1Index,
-                              "Texte",
-                          index,
-                          "antwort",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Fazit"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil1",
+                                teil1Index,
+                                "Texte",
+                                index,
+                                "antwort",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Fazit"
                           value={item.fazit || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil1"],
-                              teil1Index,
-                              "Texte",
-                          index,
-                          "fazit",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil1",
+                                teil1Index,
+                                "Texte",
+                                index,
+                                "fazit",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
                         addArrayItem(
                           ["teile", "teil1", teil1Index, "Texte"],
                           {
                             id: getNextNumericId(teil1Item.Texte || []),
-                      text: "",
-                      antwort: "",
-                      fazit: "",
+                            text: "",
+                            antwort: "",
+                            fazit: "",
                           }
                         )
-                  }
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Text
-                </button>
-              </div>
+                      }
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
+                    >
+                      <PlusCircle size={20} className="mr-2" /> Add Text
+                    </button>
+                  </div>
                 </div>
               ))}
-              
+
               <button
                 type="button"
                 onClick={() =>
@@ -640,288 +641,333 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Teil 2 Details
               </h3>
-              
+
               {/* Teil 2 Items */}
-              {formData.teile.teil2.map((teil2Item, teil2Index) => (
-                <div key={teil2Index} className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700">
+              {(formData.teile.teil2 || []).map((teil2Item, teil2Index) => (
+                <div
+                  key={teil2Index}
+                  className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700"
+                >
                   <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-semibold">Teil 2 Item #{teil2Index + 1}</h4>
+                    <h4 className="font-semibold">
+                      Teil 2 Item #{teil2Index + 1}
+                    </h4>
                     <button
                       type="button"
-                      onClick={() => removeArrayItem(["teile", "teil2"], teil2Index)}
+                      onClick={() =>
+                        removeArrayItem(["teile", "teil2"], teil2Index)
+                      }
                       className="text-red-500 hover:text-red-400"
                     >
                       <XCircle size={22} />
                     </button>
                   </div>
-                  
-              <Input
-                label="Titel"
+
+                  <Input
+                    label="Titel"
                     value={teil2Item.titel || ""}
                     onChange={(e) =>
-                      handleArrayChange(
-                        ["teile", "teil2"],
-                        teil2Index,
-                        "titel",
+                      handleNestedChange(
+                        ["teile", "teil2", teil2Index, "titel"],
                         e.target.value
                       )
                     }
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
-              <Input
-                label="Photo URL"
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                  />
+                  <Input
+                    label="Photo URL"
                     value={teil2Item.photo || ""}
                     onChange={(e) =>
-                      handleArrayChange(
-                        ["teile", "teil2"],
-                        teil2Index,
-                        "photo",
+                      handleNestedChange(
+                        ["teile", "teil2", teil2Index, "photo"],
                         e.target.value
                       )
                     }
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
-              <TextArea
-                label="Text"
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                  />
+                  <TextArea
+                    label="Text"
                     value={teil2Item.text || ""}
                     onChange={(e) =>
-                      handleArrayChange(
-                        ["teile", "teil2"],
-                        teil2Index,
-                        "text",
+                      handleNestedChange(
+                        ["teile", "teil2", teil2Index, "text"],
                         e.target.value
                       )
                     }
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                rows="3"
-              />
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    rows="3"
+                  />
 
-              {/* Fragen */}
-              <div className="mt-6">
+                  {/* Fragen */}
+                  <div className="mt-6">
                     <h5 className="font-semibold mb-2">Fragen</h5>
                     {(teil2Item.fragen || []).map((frage, idx) => (
-                  <div
-                    key={idx}
+                      <div
+                        key={idx}
                         className="p-4 my-2 bg-gray-700 rounded-md border border-gray-600"
-                  >
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() =>
-                              removeArrayItem(
-                                ["teile", "teil2", teil2Index, "fragen"],
-                                idx
-                              )
-                        }
-                        className="text-red-500 hover:text-red-400"
                       >
-                            <XCircle size={20} />
-                      </button>
-                    </div>
-                    <Input
-                      label="ID"
-                      type="number"
-                          value={frage.id || 0}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil2"],
-                              teil2Index,
-                              "fragen",
-                          idx,
-                          "id",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Text"
-                          value={frage.text || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil2"],
-                              teil2Index,
-                              "fragen",
-                          idx,
-                          "text",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-
-                    {/* Options */}
-                    <div className="ml-4 mt-4">
-                          <h6 className="font-semibold">Options</h6>
-                          {(frage.options || []).map((opt, optIdx) => (
-                        <div key={optIdx} className="flex gap-2 items-center">
-                          <Input
-                            label="Option ID"
-                                value={opt.id || ""}
-                            onChange={(e) =>
-                              handleNestedArrayChange(
-                                    ["teile", "teil2"],
-                                    teil2Index,
-                                    "fragen",
-                                idx,
-                                "options",
-                                optIdx,
-                                "id",
-                                e.target.value
-                              )
-                            }
-                            onFocus={handleFocus}
-                            onBlur={handleBlur}
-                          />
-                          <Input
-                            label="Option Text"
-                                value={opt.text || ""}
-                            onChange={(e) =>
-                              handleNestedArrayChange(
-                                    ["teile", "teil2"],
-                                    teil2Index,
-                                    "fragen",
-                                idx,
-                                "options",
-                                optIdx,
-                                "text",
-                                e.target.value
-                              )
-                            }
-                            onFocus={handleFocus}
-                            onBlur={handleBlur}
-                          />
+                        <div className="flex justify-end">
                           <button
                             type="button"
                             onClick={() =>
                               removeArrayItem(
-                                    ["teile", "teil2", teil2Index, "fragen", idx, "options"],
-                                optIdx
+                                ["teile", "teil2", teil2Index, "fragen"],
+                                idx
                               )
                             }
-                            className="mt-6 text-red-500 hover:text-red-400"
+                            className="text-red-500 hover:text-red-400"
                           >
                             <XCircle size={20} />
                           </button>
                         </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          addArrayItem(
-                                ["teile", "teil2", teil2Index, "fragen", idx, "options"],
-                                { id: getNextAlphaId(frage.options || []), text: "" }
-                          )
-                        }
-                        className="text-indigo-400 mt-2 text-sm"
-                      >
-                        Add Option
-                      </button>
-                    </div>
+                        <Input
+                          label="ID"
+                          type="number"
+                          value={frage.id || 0}
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil2",
+                                teil2Index,
+                                "fragen",
+                                idx,
+                                "id",
+                              ],
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Text"
+                          value={frage.text || ""}
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil2",
+                                teil2Index,
+                                "fragen",
+                                idx,
+                                "text",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
 
-                    <Input
-                      label="Antwort"
+                        {/* Options */}
+                        <div className="ml-4 mt-4">
+                          <h6 className="font-semibold">Options</h6>
+                          {(frage.options || []).map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className="flex gap-2 items-center"
+                            >
+                              <Input
+                                label="Option ID"
+                                value={opt.id || ""}
+                                onChange={(e) =>
+                                  handleNestedChange(
+                                    [
+                                      "teile",
+                                      "teil2",
+                                      teil2Index,
+                                      "fragen",
+                                      idx,
+                                      "options",
+                                      optIdx,
+                                      "id",
+                                    ],
+                                    e.target.value
+                                  )
+                                }
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
+                              />
+                              <Input
+                                label="Option Text"
+                                value={opt.text || ""}
+                                onChange={(e) =>
+                                  handleNestedChange(
+                                    [
+                                      "teile",
+                                      "teil2",
+                                      teil2Index,
+                                      "fragen",
+                                      idx,
+                                      "options",
+                                      optIdx,
+                                      "text",
+                                    ],
+                                    e.target.value
+                                  )
+                                }
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeArrayItem(
+                                    [
+                                      "teile",
+                                      "teil2",
+                                      teil2Index,
+                                      "fragen",
+                                      idx,
+                                      "options",
+                                    ],
+                                    optIdx
+                                  )
+                                }
+                                className="mt-6 text-red-500 hover:text-red-400"
+                              >
+                                <XCircle size={20} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              addArrayItem(
+                                [
+                                  "teile",
+                                  "teil2",
+                                  teil2Index,
+                                  "fragen",
+                                  idx,
+                                  "options",
+                                ],
+                                {
+                                  id: getNextAlphaId(frage.options || []),
+                                  text: "",
+                                }
+                              )
+                            }
+                            className="text-indigo-400 mt-2 text-sm"
+                          >
+                            Add Option
+                          </button>
+                        </div>
+
+                        <Input
+                          label="Antwort"
                           value={frage.antwort || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil2"],
-                              teil2Index,
-                              "fragen",
-                          idx,
-                          "antwort",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Begründung"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil2",
+                                teil2Index,
+                                "fragen",
+                                idx,
+                                "antwort",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Begründung"
                           value={frage.begründung || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil2"],
-                              teil2Index,
-                              "fragen",
-                          idx,
-                          "begründung",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil2",
+                                teil2Index,
+                                "fragen",
+                                idx,
+                                "begründung",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
                         addArrayItem(
                           ["teile", "teil2", teil2Index, "fragen"],
                           {
                             id: getNextNumericId(teil2Item.fragen || []),
-                      text: "",
-                      options: [],
-                      antwort: "",
-                      begründung: "",
+                            text: "",
+                            options: [], // <-- ensure this is always present!
+                            antwort: "",
+                            begründung: "",
                           }
                         )
-                  }
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Frage
-                </button>
-              </div>
+                      }
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
+                    >
+                      <PlusCircle size={20} className="mr-2" /> Add Frage
+                    </button>
+                  </div>
 
-              {/* Fazit Array Input */}
-              <div className="mt-6">
+                  {/* Fazit Array Input */}
+                  <div className="mt-6">
                     <h5 className="font-semibold mb-2">Fazit</h5>
                     {(teil2Item.fazit || []).map((item, idx) => (
-                  <div
-                    key={idx}
+                      <div
+                        key={idx}
                         className="flex items-center gap-2 p-3 my-2 bg-gray-700 rounded-md"
-                  >
-                    <Input
-                      label={`Fazit #${idx + 1}`}
+                      >
+                        <Input
+                          label={`Fazit #${idx + 1}`}
                           value={item || ""}
-                      onChange={(e) =>
-                        handleArrayChange(
+                          onChange={(e) =>
+                            handleNestedChange(
+                              ["teile", "teil2", teil2Index, "fazit", idx],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeArrayItem(
                               ["teile", "teil2", teil2Index, "fazit"],
-                          idx,
-                          null,
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
+                              idx
+                            )
+                          }
+                          className="mt-6 text-red-500 hover:text-red-400"
+                        >
+                          <XCircle size={20} />
+                        </button>
+                      </div>
+                    ))}
                     <button
                       type="button"
                       onClick={() =>
-                            removeArrayItem(["teile", "teil2", teil2Index, "fazit"], idx)
+                        addArrayItem(
+                          ["teile", "teil2", teil2Index, "fazit"],
+                          ""
+                        )
                       }
-                      className="mt-6 text-red-500 hover:text-red-400"
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
                     >
-                          <XCircle size={20} />
+                      <PlusCircle size={20} className="mr-2" /> Add Fazit
                     </button>
                   </div>
-                ))}
-                <button
-                  type="button"
-                      onClick={() => addArrayItem(["teile", "teil2", teil2Index, "fazit"], "")}
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Fazit
-                </button>
-              </div>
                 </div>
               ))}
-              
+
               <button
                 type="button"
                 onClick={() =>
@@ -945,216 +991,246 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Teil 3 Details
               </h3>
-              
+
               {/* Teil 3 Items */}
               {formData.teile.teil3.map((teil3Item, teil3Index) => (
-                <div key={teil3Index} className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700">
+                <div
+                  key={teil3Index}
+                  className="p-4 my-4 bg-gray-800 rounded-md border border-gray-700"
+                >
                   <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-semibold">Teil 3 Item #{teil3Index + 1}</h4>
+                    <h4 className="font-semibold">
+                      Teil 3 Item #{teil3Index + 1}
+                    </h4>
                     <button
                       type="button"
-                      onClick={() => removeArrayItem(["teile", "teil3"], teil3Index)}
+                      onClick={() =>
+                        removeArrayItem(["teile", "teil3"], teil3Index)
+                      }
                       className="text-red-500 hover:text-red-400"
                     >
                       <XCircle size={22} />
                     </button>
                   </div>
-                  
-              <Input
-                label="Titel"
+
+                  <Input
+                    label="Titel"
                     value={teil3Item.titel || ""}
                     onChange={(e) =>
-                      handleArrayChange(
-                        ["teile", "teil3"],
-                        teil3Index,
-                        "titel",
+                      handleNestedChange(
+                        ["teile", "teil3", teil3Index, "titel"],
                         e.target.value
                       )
                     }
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                  />
 
-              {/* Situationen */}
-              <div className="mt-6">
+                  {/* Situationen */}
+                  <div className="mt-6">
                     <h5 className="font-semibold mb-2">Situationen</h5>
                     {(teil3Item.situationen || []).map((item, idx) => (
-                  <div
-                    key={idx}
+                      <div
+                        key={idx}
                         className="flex items-center gap-2 p-3 my-2 bg-gray-700 rounded-md"
-                  >
-                    <Input
-                      label="ID"
-                      type="number"
+                      >
+                        <Input
+                          label="ID"
+                          type="number"
                           value={item.id || 0}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil3"],
-                              teil3Index,
-                              "situationen",
-                          idx,
-                          "id",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Text"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil3",
+                                teil3Index,
+                                "situationen",
+                                idx,
+                                "id",
+                              ],
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Text"
                           value={item.text || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil3"],
-                              teil3Index,
-                              "situationen",
-                          idx,
-                          "text",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil3",
+                                teil3Index,
+                                "situationen",
+                                idx,
+                                "text",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeArrayItem(
+                              [
+                                "teile",
+                                "teil3",
+                                teil3Index,
+                                "situationen",
+                              ],
+                              idx
+                            )
+                          }
+                          className="mt-6 text-red-500 hover:text-red-400"
+                        >
+                          <XCircle size={20} />
+                        </button>
+                      </div>
+                    ))}
                     <button
                       type="button"
                       onClick={() =>
-                            removeArrayItem(
-                              ["teile", "teil3", teil3Index, "situationen"],
-                              idx
-                            )
-                      }
-                      className="mt-6 text-red-500 hover:text-red-400"
-                    >
-                          <XCircle size={20} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
                         addArrayItem(
                           ["teile", "teil3", teil3Index, "situationen"],
                           {
-                            id: getNextZeroNumericId(teil3Item.situationen || []),
-                      text: "",
+                            id: getNextZeroNumericId(
+                              teil3Item.situationen || []
+                            ),
+                            text: "",
                           }
                         )
-                  }
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Situation
-                </button>
-              </div>
+                      }
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
+                    >
+                      <PlusCircle size={20} className="mr-2" /> Add Situation
+                    </button>
+                  </div>
 
-              {/* Anzeigen */}
-              <div className="mt-6">
+                  {/* Anzeigen */}
+                  <div className="mt-6">
                     <h5 className="font-semibold mb-2">Anzeigen</h5>
                     {(teil3Item.anzeigen || []).map((item, idx) => (
-                  <div
-                    key={idx}
+                      <div
+                        key={idx}
                         className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 my-2 bg-gray-700 rounded-md"
-                  >
-                    <Input
-                      label="ID"
+                      >
+                        <Input
+                          label="ID"
                           value={item.id || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil3"],
-                              teil3Index,
-                              "anzeigen",
-                          idx,
-                          "id",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Text"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil3",
+                                teil3Index,
+                                "anzeigen",
+                                idx,
+                                "id",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Text"
                           value={item.text || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil3"],
-                              teil3Index,
-                              "anzeigen",
-                          idx,
-                          "text",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Antwort"
-                      type="number"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil3",
+                                teil3Index,
+                                "anzeigen",
+                                idx,
+                                "text",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Antwort"
+                          type="number"
                           value={item.antwort || 0}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil3"],
-                              teil3Index,
-                              "anzeigen",
-                          idx,
-                          "antwort",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Fazit"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil3",
+                                teil3Index,
+                                "anzeigen",
+                                idx,
+                                "antwort",
+                              ],
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Fazit"
                           value={item.fazit || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["teile", "teil3"],
-                              teil3Index,
-                              "anzeigen",
-                          idx,
-                          "fazit",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "teile",
+                                "teil3",
+                                teil3Index,
+                                "anzeigen",
+                                idx,
+                                "fazit",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
                             removeArrayItem(
                               ["teile", "teil3", teil3Index, "anzeigen"],
                               idx
                             )
-                      }
-                      className="mt-6 text-red-500 hover:text-red-400"
-                    >
+                          }
+                          className="mt-6 text-red-500 hover:text-red-400"
+                        >
                           <XCircle size={20} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
                         addArrayItem(
                           ["teile", "teil3", teil3Index, "anzeigen"],
                           {
                             id: getNextAlphaId(teil3Item.anzeigen || []),
-                      text: "",
-                      antwort: 0,
-                      fazit: "",
+                            text: "",
+                            antwort: 0,
+                            fazit: "",
                           }
                         )
-                  }
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Anzeige
-                </button>
-              </div>
+                      }
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
+                    >
+                      <PlusCircle size={20} className="mr-2" /> Add Anzeige
+                    </button>
+                  </div>
                 </div>
               ))}
-              
+
               <button
                 type="button"
                 onClick={() =>
@@ -1176,196 +1252,243 @@ const LesenForm = () => {
               <h3 className="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">
                 Sprachbausteine
               </h3>
-              
+
               {/* Sprachb Teil 1 Items */}
               <div className="mb-6">
                 <h4 className="font-semibold mb-4">Teil 1</h4>
                 {formData.sprachb.teil1.map((sprachb1Item, sprachb1Index) => (
-                  <div key={sprachb1Index} className="p-4 my-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <div
+                    key={sprachb1Index}
+                    className="p-4 my-4 bg-gray-800/50 rounded-lg border border-gray-700"
+                  >
                     <div className="flex justify-between items-center mb-4">
-                      <h5 className="font-semibold">Teil 1 Item #{sprachb1Index + 1}</h5>
+                      <h5 className="font-semibold">
+                        Teil 1 Item #{sprachb1Index + 1}
+                      </h5>
                       <button
                         type="button"
-                        onClick={() => removeArrayItem(["sprachb", "teil1"], sprachb1Index)}
+                        onClick={() =>
+                          removeArrayItem(["sprachb", "teil1"], sprachb1Index)
+                        }
                         className="text-red-500 hover:text-red-400"
                       >
                         <XCircle size={20} />
                       </button>
                     </div>
-                    
-                <TextArea
-                  label="Text"
+
+                    <TextArea
+                      label="Text"
                       value={sprachb1Item.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil1"],
-                          sprachb1Index,
-                          "text",
+                        handleNestedChange(
+                          ["sprachb", "teil1", sprachb1Index, "text"],
                           e.target.value
-                        )
-                      }
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                  rows="2"
-                />
-                    
-                    {(sprachb1Item.fragen || []).map((frage, idx) => (
-                  <div
-                    key={idx}
-                        className="p-4 my-2 bg-gray-700 rounded-md border border-gray-600"
-                  >
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() =>
-                              removeArrayItem(
-                                ["sprachb", "teil1", sprachb1Index, "fragen"],
-                                idx
-                              )
-                        }
-                        className="text-red-500 hover:text-red-400"
-                      >
-                            <XCircle size={20} />
-                      </button>
-                    </div>
-                    <Input
-                      label="ID"
-                      type="number"
-                          value={frage.id || 0}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["sprachb", "teil1"],
-                              sprachb1Index,
-                              "fragen",
-                          idx,
-                          "id",
-                          parseInt(e.target.value) || 0
                         )
                       }
                       onFocus={handleFocus}
                       onBlur={handleBlur}
+                      rows="2"
                     />
-                    <div className="ml-4 mt-4">
-                          <h6 className="font-semibold">Options</h6>
-                          {(frage.options || []).map((opt, optIdx) => (
-                        <div key={optIdx} className="flex gap-2 items-center">
-                          <Input
-                            label="Option ID"
-                                value={opt.id || ""}
-                            onChange={(e) =>
-                              handleNestedArrayChange(
-                                    ["sprachb", "teil1"],
-                                    sprachb1Index,
-                                    "fragen",
-                                idx,
-                                "options",
-                                optIdx,
-                                "id",
-                                e.target.value
-                              )
-                            }
-                            onFocus={handleFocus}
-                            onBlur={handleBlur}
-                          />
-                          <Input
-                            label="Option Text"
-                                value={opt.text || ""}
-                            onChange={(e) =>
-                              handleNestedArrayChange(
-                                    ["sprachb", "teil1"],
-                                    sprachb1Index,
-                                    "fragen",
-                                idx,
-                                "options",
-                                optIdx,
-                                "text",
-                                e.target.value
-                              )
-                            }
-                            onFocus={handleFocus}
-                            onBlur={handleBlur}
-                          />
+
+                    {(sprachb1Item.fragen || []).map((frage, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 my-2 bg-gray-700 rounded-md border border-gray-600"
+                      >
+                        <div className="flex justify-end">
                           <button
                             type="button"
                             onClick={() =>
                               removeArrayItem(
-                                    ["sprachb", "teil1", sprachb1Index, "fragen", idx, "options"],
-                                optIdx
+                                [
+                                  "sprachb",
+                                  "teil1",
+                                  sprachb1Index,
+                                  "fragen",
+                                ],
+                                idx
                               )
                             }
-                            className="mt-6 text-red-500 hover:text-red-400"
+                            className="text-red-500 hover:text-red-400"
                           >
                             <XCircle size={20} />
                           </button>
                         </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          addArrayItem(
-                                ["sprachb", "teil1", sprachb1Index, "fragen", idx, "options"],
-                                { id: getNextAlphaId(frage.options || []), text: "" }
-                          )
-                        }
-                        className="text-indigo-400 mt-2 text-sm"
-                      >
-                        Add Option
-                      </button>
-                    </div>
-                    <Input
-                      label="Antwort"
+                        <Input
+                          label="ID"
+                          type="number"
+                          value={frage.id || 0}
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "sprachb",
+                                "teil1",
+                                sprachb1Index,
+                                "fragen",
+                                idx,
+                                "id",
+                              ],
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <div className="ml-4 mt-4">
+                          <h6 className="font-semibold">Options</h6>
+                          {(frage.options || []).map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className="flex gap-2 items-center"
+                            >
+                              <Input
+                                label="Option ID"
+                                value={opt.id || ""}
+                                onChange={(e) =>
+                                  handleNestedChange(
+                                    [
+                                      "sprachb",
+                                      "teil1",
+                                      sprachb1Index,
+                                      "fragen",
+                                      idx,
+                                      "options",
+                                      optIdx,
+                                      "id",
+                                    ],
+                                    e.target.value
+                                  )
+                                }
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
+                              />
+                              <Input
+                                label="Option Text"
+                                value={opt.text || ""}
+                                onChange={(e) =>
+                                  handleNestedChange(
+                                    [
+                                      "sprachb",
+                                      "teil1",
+                                      sprachb1Index,
+                                      "fragen",
+                                      idx,
+                                      "options",
+                                      optIdx,
+                                      "text",
+                                    ],
+                                    e.target.value
+                                  )
+                                }
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeArrayItem(
+                                    [
+                                      "sprachb",
+                                      "teil1",
+                                      sprachb1Index,
+                                      "fragen",
+                                      idx,
+                                      "options",
+                                    ],
+                                    optIdx
+                                  )
+                                }
+                                className="mt-6 text-red-500 hover:text-red-400"
+                              >
+                                <XCircle size={20} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              addArrayItem(
+                                [
+                                  "sprachb",
+                                  "teil1",
+                                  sprachb1Index,
+                                  "fragen",
+                                  idx,
+                                  "options",
+                                ],
+                                {
+                                  id: getNextAlphaId(frage.options || []),
+                                  text: "",
+                                }
+                              )
+                            }
+                            className="text-indigo-400 mt-2 text-sm"
+                          >
+                            Add Option
+                          </button>
+                        </div>
+                        <Input
+                          label="Antwort"
                           value={frage.antwort || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["sprachb", "teil1"],
-                              sprachb1Index,
-                              "fragen",
-                          idx,
-                          "antwort",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Begründung"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "sprachb",
+                                "teil1",
+                                sprachb1Index,
+                                "fragen",
+                                idx,
+                                "antwort",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Begründung"
                           value={frage.begründung || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["sprachb", "teil1"],
-                              sprachb1Index,
-                              "fragen",
-                          idx,
-                          "begründung",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "sprachb",
+                                "teil1",
+                                sprachb1Index,
+                                "fragen",
+                                idx,
+                                "begründung",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
                         addArrayItem(
                           ["sprachb", "teil1", sprachb1Index, "fragen"],
                           {
-                            id: getNextNumericId(sprachb1Item.fragen || []),
-                      options: [],
-                      antwort: "",
-                      begründung: "",
+                            id: getNextNumericId(
+                              sprachb1Item.fragen || []
+                            ),
+                            options: [],
+                            antwort: "",
+                            begründung: "",
                           }
                         )
-                  }
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Frage
-                </button>
-              </div>
+                      }
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
+                    >
+                      <PlusCircle size={20} className="mr-2" /> Add Frage
+                    </button>
+                  </div>
                 ))}
-                
+
                 <button
                   type="button"
                   onClick={() =>
@@ -1384,138 +1507,162 @@ const LesenForm = () => {
               <div className="mb-6">
                 <h4 className="font-semibold mb-4">Teil 2</h4>
                 {formData.sprachb.teil2.map((sprachb2Item, sprachb2Index) => (
-                  <div key={sprachb2Index} className="p-4 my-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <div
+                    key={sprachb2Index}
+                    className="p-4 my-4 bg-gray-800/50 rounded-lg border border-gray-700"
+                  >
                     <div className="flex justify-between items-center mb-4">
-                      <h5 className="font-semibold">Teil 2 Item #{sprachb2Index + 1}</h5>
+                      <h5 className="font-semibold">
+                        Teil 2 Item #{sprachb2Index + 1}
+                      </h5>
                       <button
                         type="button"
-                        onClick={() => removeArrayItem(["sprachb", "teil2"], sprachb2Index)}
+                        onClick={() =>
+                          removeArrayItem(["sprachb", "teil2"], sprachb2Index)
+                        }
                         className="text-red-500 hover:text-red-400"
                       >
                         <XCircle size={20} />
                       </button>
                     </div>
-                    
-                <TextArea
-                  label="Text"
+
+                    <TextArea
+                      label="Text"
                       value={sprachb2Item.text || ""}
                       onChange={(e) =>
-                        handleArrayChange(
-                          ["sprachb", "teil2"],
-                          sprachb2Index,
-                          "text",
+                        handleNestedChange(
+                          ["sprachb", "teil2", sprachb2Index, "text"],
                           e.target.value
                         )
                       }
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                  rows="2"
-                />
-                    
+                      onFocus={handleFocus}
+                      onBlur={handleBlur}
+                      rows="2"
+                    />
+
                     {(sprachb2Item.options || []).map((opt, idx) => (
-                  <div
-                    key={idx}
+                      <div
+                        key={idx}
                         className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center p-3 my-2 bg-gray-700 rounded-md"
-                  >
-                    <Input
-                      label="ID"
+                      >
+                        <Input
+                          label="ID"
                           value={opt.id || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["sprachb", "teil2"],
-                              sprachb2Index,
-                              "options",
-                          idx,
-                          "id",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Text"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "sprachb",
+                                "teil2",
+                                sprachb2Index,
+                                "options",
+                                idx,
+                                "id",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Text"
                           value={opt.text || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["sprachb", "teil2"],
-                              sprachb2Index,
-                              "options",
-                          idx,
-                          "text",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Antwort"
-                      type="number"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "sprachb",
+                                "teil2",
+                                sprachb2Index,
+                                "options",
+                                idx,
+                                "text",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Antwort"
+                          type="number"
                           value={opt.antwort || 0}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["sprachb", "teil2"],
-                              sprachb2Index,
-                              "options",
-                          idx,
-                          "antwort",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
-                    <Input
-                      label="Begründung"
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "sprachb",
+                                "teil2",
+                                sprachb2Index,
+                                "options",
+                                idx,
+                                "antwort",
+                              ],
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <Input
+                          label="Begründung"
                           value={opt.begründung || ""}
-                      onChange={(e) =>
-                            handleNestedArrayChange(
-                              ["sprachb", "teil2"],
-                              sprachb2Index,
-                              "options",
-                          idx,
-                          "begründung",
-                          e.target.value
-                        )
-                      }
-                      onFocus={handleFocus}
-                      onBlur={handleBlur}
-                    />
+                          onChange={(e) =>
+                            handleNestedChange(
+                              [
+                                "sprachb",
+                                "teil2",
+                                sprachb2Index,
+                                "options",
+                                idx,
+                                "begründung",
+                              ],
+                              e.target.value
+                            )
+                          }
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeArrayItem(
+                              [
+                                "sprachb",
+                                "teil2",
+                                sprachb2Index,
+                                "options",
+                              ],
+                              idx
+                            )
+                          }
+                          className="mt-6 text-red-500 hover:text-red-400"
+                        >
+                          <XCircle size={20} />
+                        </button>
+                      </div>
+                    ))}
                     <button
                       type="button"
                       onClick={() =>
-                            removeArrayItem(
-                              ["sprachb", "teil2", sprachb2Index, "options"],
-                              idx
-                            )
-                      }
-                      className="mt-6 text-red-500 hover:text-red-400"
-                    >
-                          <XCircle size={20} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
                         addArrayItem(
                           ["sprachb", "teil2", sprachb2Index, "options"],
                           {
-                            id: getNextAlphaId(sprachb2Item.options || []),
-                      text: "",
-                      antwort: 0,
-                      begründung: "",
+                            id: getNextAlphaId(
+                              sprachb2Item.options || []
+                            ),
+                            text: "",
+                            antwort: 0,
+                            begründung: "",
                           }
                         )
-                  }
-                  className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
-                >
-                  <PlusCircle size={20} className="mr-2" /> Add Option
+                      }
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 mt-2"
+                    >
+                      <PlusCircle size={20} className="mr-2" /> Add Option
                     </button>
                   </div>
                 ))}
-                
+
                 <button
                   type="button"
                   onClick={() =>
