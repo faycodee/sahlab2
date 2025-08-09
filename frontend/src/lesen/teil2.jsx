@@ -51,7 +51,12 @@ const Teil2 = () => {
     sessionStorage.setItem("teil2", correctCount); // Save score
   };
 
-  if (loading) return <div className="p-4">⏳ Wird geladen...</div>;
+  if (loading) return  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500"></div>
+    
+  </div>
+
+;
 
   return (
     <div className="p-6 space-y-10 max-w-4xl mx-auto">

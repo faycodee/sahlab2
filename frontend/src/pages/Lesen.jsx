@@ -2,11 +2,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-// import Teil1 from '../lesen/teil1';
-// import Teil2 from '../lesen/teil2';
-// import Teil3 from '../lesen/teil3';
-// import SprachTeil1 from '../lesen/spteil1';
-// import SprachTeil2 from '../lesen/spteil2';
 
 const API_URL =
   window.location.hostname === "localhost"
@@ -14,7 +9,6 @@ const API_URL =
     : import.meta.env.VITE_API_URL + "/api/lesen";
 
 const Lesen = () => {
- 
   const navigate = useNavigate();
   const [data, setData] = useState(null);
 
@@ -33,9 +27,15 @@ const Lesen = () => {
       <div>
         <h1 className="font-mono mb-10"></h1>
         <h1 className="text-4xl  md:text-5xl font-extrabold text-gray-800 mb-10">
-          Themat li kaynin :<span className="text-green-700">B2</span>
+          Themat Lesen :<span className="text-green-700">B2</span>
         </h1>
         <div>
+          {!data && (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500"></div>
+              
+            </div>
+          )}
           {data && (
             <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 rounded-3xl ">
               {/* ... thead ... */}

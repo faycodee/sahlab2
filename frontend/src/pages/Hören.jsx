@@ -1,52 +1,78 @@
+// Hören.jsx
+import { useEffect, useState, useRef } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import gsap from "gsap";
 
-import React, { useEffect, useRef } from "react";
-import { gsap } from "gsap";
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000/api/horen"
+    : import.meta.env.VITE_API_URL + "/api/horen";
+
 const Hören = () => {
-      const heroRef = useRef(null);
-    
-      useEffect(() => {
-        gsap.from(heroRef.current, { opacity: 0, y: -50, duration: 1 });
-      }, []);
-    return (
-           <section
-      ref={heroRef}
-      className="w-full  h-[86vh] bg-gradient-to-r from-green-50 to-blue-100 py-16 md:py-24"
-    >
-      <div className="container mx-auto flex flex-col md:flex-row items-center gap-10 px-4">
-        <div className="md:w-1/2 text-center md:text-left">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4">
-            German Courses <span className="text-green-700">A1–C2</span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-700 mb-6">
-            Learn German with interactive lessons, quizzes, and expert guidance.
-            Rapid progress guaranteed thanks to modern teaching methods,
-            intensive support, and a recognized level system.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-            <a
-              href="#courses"
-              className="bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 transition"
-            >
-              Explore Courses
-            </a>
-            <a
-              href="#about"
-              className="border border-green-600 text-green-600 px-6 py-2 rounded hover:bg-green-50 transition"
-            >
-              Learn More
-            </a>
-          </div>
-        </div>
-        <div className="md:w-1/2 flex justify-center">
-          <img
-            src="/hero-image.jpg"
-            alt="Students learning German"
-            className="rounded-lg shadow-lg w-full max-w-md object-cover"
-          />
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    axios.get(API_URL).then((res) => {
+      setData(res.data);
+      console.log(res.data);
+    });
+  }, []);
+
+  // GSAP animation on mount
+  useEffect(() => {
+    gsap.fromTo(
+      cardRef.current,
+      { opacity: 0, y: 50, scale: 0.9 },
+      { opacity: 1, y: 0, scale: 1, duration: 1, ease: "power3.out" }
+    );
+  }, []);
+
+  return (
+    <div className="p-4 space-y-10 w-full  h-[86vh] bg-gradient-to-r from-green-50 to-blue-100 py-16 md:py-24">
+       <h1 className="text-4xl  md:text-5xl font-extrabold text-gray-800 mb-10">
+        Hören Teile :<span className="text-green-700">B2</span>
+        </h1>
+      {/* Card */}
+      <div className="flex items-center justify-center bg-white border-b dark:bg-gray-800 h-[60vh] ">
+      <div
+        ref={cardRef}
+        className=" bg-green-100 rounded-2xl shadow-xl max-w-lg w-full p-[100px] text-center"
+      >
+       
+        <p className="text-black mb-6">
+          Trainiere dein Hörverstehen für die B2 TELC Prüfung.  
+          Wähle einen Teil aus und starte den Test.
+        </p>
+
+        {/* Example buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            onClick={() => navigate("/hören/teil1")}
+            className="px-6 py-3 bg-black hover:bg-black/65 text-white rounded-lg shadow-md transition"
+          >
+            Teil 1 starten
+          </button>
+          <button
+            onClick={() => navigate("/hören/teil2")}
+            className="px-6 py-3 bg-black hover:bg-black/65 text-white rounded-lg shadow-md transition"
+          >
+            Teil 2 starten
+          </button>
+          <button
+            onClick={() => navigate("/hören/teil2")}
+            className="px-6 py-3 bg-black hover:bg-black/65 text-white rounded-lg shadow-md transition"
+          >
+            Teil 3 starten
+          </button>
         </div>
       </div>
-    </section>
-    );
+      </div>
+  
+    </div>
+  );
 };
 
 export default Hören;

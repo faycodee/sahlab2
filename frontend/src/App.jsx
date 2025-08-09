@@ -13,9 +13,11 @@ import Teil1 from "./lesen/teil1";
 import Teil2 from "./lesen/teil2";
 import Teil3 from "./lesen/teil3";
 import SprachTeil1 from "./lesen/spteil1";
-import SprachTeil2 from './lesen/spteil2';
+import SprachTeil2 from "./lesen/spteil2";
 import Ergebnis from "./lesen/ergebnis";
-
+import HorenTeil1 from "./hören/teil1";
+import HorenTeil2 from "./hören/teil2";
+import HorenTeil3 from "./hören/teil3";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -32,8 +34,11 @@ function App() {
           <Route path="/lesen/:id/teil3" element={<Teil3 />} />
           <Route path="/lesen/:id/sprachteil1" element={<SprachTeil1 />} />
           <Route path="/lesen/:id/sprachteil2" element={<SprachTeil2 />} />
-          <Route path="/lesen/:id/ergebnis" element={<Ergebnis  />} />
+          <Route path="/lesen/:id/ergebnis" element={<Ergebnis />} />
           <Route path="/hören" element={<Hören />} />
+          <Route path="/hören/teil1" element={<HorenTeil1 />} />
+          <Route path="/hören/teil2" element={<HorenTeil2 />} />
+          <Route path="/hören/teil3" element={<HorenTeil3 />} />
           <Route path="/schreiben" element={<Schreiben />} />
           <Route path="/login" element={<Login setUser={setUser} />} />
           <Route path="/signup" element={<SignUp setUser={setUser} />} />

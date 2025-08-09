@@ -114,8 +114,12 @@ const SignUp = ({ setUser }) => {
         >
           {loading ? (
             <>
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              Wird geladen...
+      
+          <div className="flex justify-center items-center ">
+              <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-green-950"></div>
+              
+            </div>
+          
             </>
           ) : (
             "Sign Up"
