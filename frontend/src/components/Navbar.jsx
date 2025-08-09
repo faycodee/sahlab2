@@ -143,12 +143,14 @@ const Navbar = ({ user, setUser }) => {
             ) : (
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                 <NavLink
+                  onClick={() => setMenuOpen(false)}
                   to="/login"
                   className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition text-center font-medium"
                 >
                   Login
                 </NavLink>
                 <NavLink
+                  onClick={() => setMenuOpen(false)}
                   to="/signup"
                   className="border border-green-600 text-green-600 px-6 py-2 rounded hover:bg-green-50 transition text-center font-medium"
                 >
@@ -169,6 +171,7 @@ const Navbar = ({ user, setUser }) => {
                 </NavLink>
                 <button
                   onClick={handleLogout}
+                  
                   className="block w-full text-white text-left bg-red-500 px-4 py-2 hover:bg-green-50 hover:text-red-500"
                 >
                   Logout
